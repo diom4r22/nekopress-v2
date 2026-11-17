@@ -1,0 +1,15 @@
+{
+  "name": "nekopress-v2",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "preview": "npm --prefix client run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}
