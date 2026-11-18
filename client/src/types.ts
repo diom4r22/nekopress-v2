@@ -28,6 +28,7 @@ export interface NewsSource {
   url: string;
   language: 'es' | 'en' | 'ja';
   lastFetchedAt?: string;
+  lastSuccessAt?: string;
   itemCount: number;
   status: 'active' | 'error';
 }

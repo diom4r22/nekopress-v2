@@ -94,7 +94,7 @@ const IMAGE_HOSTS = new Set([
   'img.anmosugoi.com', 'static.animecorner.me', 'cdn.myanimelist.net',
   'ramenparados.com', 's4.anilist.co', 's3.anilist.co', 's2.anilist.co',
   'cdn.bsky.app', 'cdn.animenewsnetwork.com', 'images.animecorner.me',
-  'pbs.twimg.com', 'otakuusamagazine.com',
+  'i.ytimg.com', 'pbs.twimg.com', 'otakuusamagazine.com',
 ]);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);

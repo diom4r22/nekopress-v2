@@ -11,6 +11,7 @@ import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
 import { handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
 import { classifyNews } from './services/editorial.js';
+import { editorialOverrides, saveEditorialOverride } from './db/database.js';
 import { NewsItem } from './types.js';
 import {
   listBookmarks,
@@ -44,7 +45,8 @@ app.use(['/api/bookmarks', '/api/user'], (_req, res) => {
 });
 
 // Scheduled ingestion continues without exposing administrative actions publicly.
-app.use(['/api/radar/ingest', '/api/news/sync'], (req, res, next) => {
+app.use(['/api/admin', '/api/radar/ingest', '/api/news/sync'], (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
   const secret = process.env.ADMIN_API_TOKEN;
   const supplied = req.get('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1] || '';
   if (!secret || !supplied || Buffer.byteLength(secret) !== Buffer.byteLength(supplied) ||
@@ -150,7 +152,7 @@ function areDuplicateNews(a: NewsItem, b: NewsItem): boolean {
 }
 
 // Combine RSS agency news and X Radar instant flash scoops con deduplicación inteligente
-function getAllNews(): NewsItem[] {
+function editorialNews() {
   const rssItems = ingestor.getItems();
   const radarItems = xRadarIngestor.getRadarItems();
   const rawList = [...radarItems, ...rssItems].sort(
@@ -183,8 +185,35 @@ function getAllNews(): NewsItem[] {
     }
   }
 
-  return deduped;
+  const edits = editorialOverrides();
+  return deduped.map(item => {
+    const edit = edits.get(item.id);
+    return { ...item, category: edit?.category ?? item.category, overrideCategory: edit?.category ?? null, hidden: Boolean(edit?.hidden) };
+  });
 }
+
+function getAllNews() {
+  return editorialNews().filter(item => !item.hidden);
+}
+
+const categories: NewsItem['category'][] = ['Anime', 'Manga', 'Películas', 'Streaming', 'Videojuegos', 'Industria', 'General'];
+
+app.get('/api/admin/editorial', (_req, res) => {
+  const articles = editorialNews().map(({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }) =>
+    ({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }));
+  res.json({ categories, articles, sources: ingestor.getSources() });
+});
+
+app.put('/api/admin/editorial/:id', (req, res) => {
+  const { category, hidden } = req.body ?? {};
+  if ((category !== null && !categories.includes(category)) || typeof hidden !== 'boolean') {
+    return res.status(400).json({ error: 'Cambio editorial inválido.' });
+  }
+  const article = editorialNews().find(item => item.id === req.params.id);
+  if (!article) return res.status(404).json({ error: 'Noticia no encontrada.' });
+  saveEditorialOverride(article.id, category, hidden);
+  res.json({ saved: true });
+});
 
 // Log HTTP requests
 app.use((req, res, next) => {
@@ -276,7 +305,7 @@ app.get('/api/news', (req: Request, res: Response) => {
  */
 app.get('/api/news/:slug', (req: Request, res: Response) => {
   const slug = String(req.params.slug || '');
-  const all = getAllNews();
+  const all = editorialNews();
   const item = all.find((n) => n.slug === slug);
 
   if (!item) {
@@ -285,7 +314,7 @@ app.get('/api/news/:slug', (req: Request, res: Response) => {
 
   // Related news based on same category or source (excluding current item)
   const related = all
-    .filter((n) => n.id !== item.id && (n.category === item.category || n.sourceName === item.sourceName))
+    .filter((n) => !n.hidden && n.id !== item.id && (n.category === item.category || n.sourceName === item.sourceName))
     .slice(0, 4);
 
   res.json({

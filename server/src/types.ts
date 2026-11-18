@@ -39,6 +39,7 @@ export interface NewsSource {
   language: 'es' | 'en' | 'ja';
   country: string;
   lastFetchedAt?: string;
+  lastSuccessAt?: string;
   itemCount: number;
   status: 'active' | 'error';
   lastError?: string;
