@@ -6,6 +6,8 @@ import { BookmarkButton } from './BookmarkButton.js';
 import { PosterImage } from './PosterImage.js';
 
 interface AnimeModalProps {
+  following: boolean;
+  onFollow: (id: number) => void;
   anime: AnimeItem | null;
   onClose: () => void;
   onSelectNews?: (news: NewsItem) => void;
@@ -17,6 +19,7 @@ export const AnimeModal: React.FC<AnimeModalProps> = ({
   anime,
   onClose,
   onSelectNews,
+  following, onFollow,
   isBookmarked = false,
   onToggleBookmark,
 }) => {
@@ -66,6 +69,10 @@ export const AnimeModal: React.FC<AnimeModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button type="button" aria-pressed={following} onClick={() => onFollow(anime.id)}
+              className="rounded bg-red-700 px-2 py-1 text-xs font-semibold text-white">
+              {following ? 'Siguiendo' : 'Seguir serie'}
+            </button>
             {onToggleBookmark && (
               <BookmarkButton
                 active={isBookmarked}

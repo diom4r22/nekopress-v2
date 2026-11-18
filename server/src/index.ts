@@ -9,9 +9,9 @@ import { FeedIngestor } from './services/feedIngestor.js';
 import { animeLiveService } from './services/animeLiveService.js';
 import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
-import { handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
+import { allowedUrl, handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
 import { classifyNews } from './services/editorial.js';
-import { editorialOverrides, saveEditorialOverride } from './db/database.js';
+import { activeFeature, editorialOverrides, saveEditorialChanges } from './db/database.js';
 import { NewsItem } from './types.js';
 import {
   listBookmarks,
@@ -203,14 +203,18 @@ function editorialNews() {
   }
 
   const edits = editorialOverrides();
+  const feature = activeFeature();
   return deduped.map(item => {
     const edit = edits.get(item.id);
-    return { ...item, category: edit?.category ?? item.category, overrideCategory: edit?.category ?? null, hidden: Boolean(edit?.hidden) };
+    const featured = feature?.id === item.id && !edit?.hidden ? {
+      until: feature.until, intro: feature.intro, image: toProxiedImageUrl(feature.image)
+    } : undefined;
+    return { ...item, featured, category: edit?.category ?? item.category, overrideCategory: edit?.category ?? null, hidden: Boolean(edit?.hidden) };
   });
 }
 
 function getAllNews() {
-  return editorialNews().filter(item => !item.hidden);
+  return editorialNews().filter(item => !item.hidden).sort((a,b) => Number(!!b.featured) - Number(!!a.featured));
 }
 
 const categories: NewsItem['category'][] = ['Anime', 'Manga', 'Películas', 'Streaming', 'Videojuegos', 'Industria', 'General'];
@@ -218,7 +222,7 @@ const categories: NewsItem['category'][] = ['Anime', 'Manga', 'Películas', 'Str
 app.get('/api/admin/editorial', (_req, res) => {
   const articles = editorialNews().map(({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }) =>
     ({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }));
-  res.json({ categories, articles, sources: ingestor.getSources() });
+  res.json({ categories, articles, feature: activeFeature() ?? null, sources: ingestor.getSources() });
 });
 
 app.put('/api/admin/editorial/:id', (req, res) => {
@@ -228,7 +232,13 @@ app.put('/api/admin/editorial/:id', (req, res) => {
   }
   const article = editorialNews().find(item => item.id === req.params.id);
   if (!article) return res.status(404).json({ error: 'Noticia no encontrada.' });
-  saveEditorialOverride(article.id, category, hidden);
+  const feature = req.body.feature;
+  if (feature != null && (hidden || !Number.isSafeInteger(feature.until) || feature.until <= Date.now()
+    || typeof feature.intro !== 'string' || feature.intro.length > 300
+    || typeof feature.image !== 'string' || feature.image.length > 2048 || (feature.image && !allowedUrl(feature.image)))) {
+    return res.status(400).json({ error: 'Revisa el plazo, la bajada y el dominio de la imagen de portada.' });
+  }
+  saveEditorialChanges(article.id, category, hidden, feature && { ...feature, id: article.id });
   res.json({ saved: true });
 });
 

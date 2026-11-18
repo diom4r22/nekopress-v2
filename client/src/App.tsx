@@ -27,6 +27,17 @@ export const App: React.FC = () => {
     return 'news';
   });
 
+  const [following, setFollowing] = useState<number[]>(() => {
+    try {
+      const ids: unknown = JSON.parse(localStorage.getItem('nekopress.following.v1') || '[]');
+      return Array.isArray(ids) ? ids.filter(Number.isSafeInteger) : [];
+    } catch { return []; }
+  });
+  const toggleFollow = (id: number) => {
+    const next = following.includes(id) ? following.filter(value => value !== id) : [...following, id];
+    setFollowing(next);
+    try { localStorage.setItem('nekopress.following.v1', JSON.stringify(next)); } catch { /* Available for this session. */ }
+  };
   const [allNews, setAllNews] = useState<NewsItem[]>([]);
   const allNewsRef = useRef<NewsItem[]>([]);
   allNewsRef.current = allNews;
@@ -423,6 +434,7 @@ export const App: React.FC = () => {
           {currentSection === 'schedule' && (
             <div className="max-w-[1400px] mx-auto px-6 py-8">
               <ScheduleView
+                following={following}
                 scheduleItems={scheduleItems}
                 todayDay={todayDay}
                 isLoading={scheduleLoading}
@@ -453,6 +465,8 @@ export const App: React.FC = () => {
 
       {/* 4. Anime Dossier Modal with Production Details & Linked Live Radar News */}
       <AnimeModal
+        following={!!selectedAnime && following.includes(selectedAnime.id)}
+        onFollow={toggleFollow}
         anime={selectedAnime}
         onClose={handleCloseAnime}
         onSelectNews={handleSelectArticle}

@@ -5,6 +5,7 @@ import { broadcastInstant, weekdayIn } from '../lib/scheduleClock.js';
 import { PosterImage } from './PosterImage.js';
 
 interface ScheduleViewProps {
+  following: number[];
   scheduleItems: ScheduleItem[];
   todayDay: DayOfWeek;
   isLoading: boolean;
@@ -26,24 +27,27 @@ const PLATFORMS = ['Todas', 'Crunchyroll', 'Netflix', 'Disney+'];
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
   scheduleItems: originals,
+  following,
   isLoading,
   onSelectAnimeById,
 }) => {
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'all'>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('Todas');
 
+  const [onlyFollowed, setOnlyFollowed] = useState(false);
   const [clock, setClock] = useState<'local' | 'tokyo'>('local');
   const zone = clock === 'local' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Tokyo';
   const todayDay = weekdayIn(new Date(), zone);
   const scheduleItems = useMemo(() => {
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('es', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-    return originals.map(item => {
+    const matches = onlyFollowed ? originals.filter(item => item.animeId !== undefined && following.includes(item.animeId)) : originals;
+    return matches.map(item => {
       const instant = broadcastInstant(item, now);
       return { ...item, day: instant ? weekdayIn(instant, zone) : null,
         displayTime: instant ? formatter.format(instant) : 'Hora por confirmar' };
     });
-  }, [originals, zone]);
+  }, [originals, zone, onlyFollowed, following]);
 
   // Filter items in memory (instant 0ms)
   const filteredItems = useMemo(() => {
@@ -115,6 +119,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         </div>
       </div>
 
+      <label className="flex items-center gap-2 text-sm font-semibold">
+        <input type="checkbox" checked={onlyFollowed} onChange={e => setOnlyFollowed(e.target.checked)} /> Solo las que sigo
+      </label>
       <label className="flex items-center gap-3 text-sm font-semibold">Zona horaria
         <select value={clock} onChange={e => setClock(e.target.value === 'tokyo' ? 'tokyo' : 'local')}
           className="rounded border border-zinc-400 bg-white px-3 py-2 dark:bg-zinc-900">
@@ -193,6 +200,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         {(selectedDay !== 'all' || selectedPlatform !== 'Todas') && (
           <button
             onClick={() => {
+              setOnlyFollowed(false);
               setSelectedDay('all');
               setSelectedPlatform('Todas');
             }}
@@ -341,10 +349,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             No hay emisiones programadas con los filtros seleccionados.
           </p>
           <p className="text-xs text-zinc-500 max-w-md mx-auto">
-            Prueba seleccionando otro día de la semana o restableciendo los filtros de plataforma.
+            {onlyFollowed && following.length === 0 ? 'Abre la ficha de un anime y pulsa «Seguir serie».' : 'Prueba otro día o restablece los filtros.'}
           </p>
           <button
             onClick={() => {
+              setOnlyFollowed(false);
               setSelectedDay('all');
               setSelectedPlatform('Todas');
             }}
