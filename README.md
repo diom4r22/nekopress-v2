@@ -37,4 +37,4 @@ Los favoritos se guardan en el navegador y no se sincronizan entre dispositivos.
 
 La sincronización automática continúa en segundo plano. Para usar las rutas administrativas `/api/news/sync` o `/api/radar/ingest`, configura `ADMIN_API_TOKEN` en `server/.env` y envía `Authorization: Bearer <token>`. Sin token, esas rutas están desactivadas. El botón de actualizar consulta los datos disponibles.
 
-El proxy de imágenes solo acepta proveedores conocidos mediante HTTPS, limita el tamaño y no sigue redirecciones. Si una fuente nueva usa otro dominio, añádelo a la lista de proveedores en `server/src/services/imageProxy.ts` tras verificarlo.
+El proxy de imágenes solo acepta proveedores conocidos mediante HTTPS, limita el tamaño y solo sigue hasta dos redirecciones entre proveedores permitidos. Si una fuente nueva usa otro dominio, añádelo a la lista de proveedores en `server/src/services/imageProxy.ts` tras verificarlo.

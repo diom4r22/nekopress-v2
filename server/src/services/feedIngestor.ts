@@ -3,8 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { FeedConfig, NewsCategory, NewsItem, NewsSource } from '../types.js';
+import { FeedConfig, NewsItem, NewsSource } from '../types.js';
 import { listNewsArticles, saveNewsArticles, getCachedTranslation, purgeInvalidNewsArticles } from '../db/database.js';
+import { classifyNews } from './editorial.js';
 import { geminiCurator } from './geminiCurator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -139,16 +140,6 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
-}
-
-function classifyCategory(text: string): NewsCategory {
-  const t = text.toLowerCase();
-  if (/manga|cómic|comic|shonen jump|volumen|tomo|capítulo/.test(t)) return 'Manga';
-  if (/película|film|movie|cine|taquilla|box office/.test(t)) return 'Películas';
-  if (/streaming|crunchyroll|netflix|disney\+|emisión|doblaje|latino/.test(t)) return 'Streaming';
-  if (/juego|videojuego|game|switch|ps5|playstation|nintendo|steam/.test(t)) return 'Videojuegos';
-  if (/estudio|producción|staff|director|seiyuu|actor de voz|taquilla|oricon/.test(t)) return 'Industria';
-  return 'Anime';
 }
 
 interface StoreData {
@@ -487,7 +478,7 @@ export class FeedIngestor {
                   author: item.creator || undefined,
                   publishedAt: new Date(pubTime).toISOString(),
                   imageUrl: resolvedImage,
-                  category: classifyCategory(`${title} ${summary}`),
+                  category: classifyNews(title, summary),
                   tags: (item.categories || []).map((c) => cleanText(String(c), 30)).filter(Boolean).slice(0, 5),
                   language: feed.language,
                   isVerified: true,

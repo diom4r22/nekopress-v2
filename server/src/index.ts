@@ -10,6 +10,7 @@ import { animeLiveService } from './services/animeLiveService.js';
 import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
 import { handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
+import { classifyNews } from './services/editorial.js';
 import { NewsItem } from './types.js';
 import {
   listBookmarks,
@@ -159,7 +160,8 @@ function getAllNews(): NewsItem[] {
   const deduped: NewsItem[] = [];
 
   for (const item of rawList) {
-    const proxied = item.imageUrl ? { ...item, imageUrl: toProxiedImageUrl(item.imageUrl) } : item;
+    const proxied = { ...item, category: classifyNews(item.title, item.summary, item.category),
+      imageUrl: toProxiedImageUrl(item.imageUrl) };
     const existing = deduped.find((d) => areDuplicateNews(d, proxied));
     if (existing) {
       // Si una de las dos versiones duplicadas tiene imagen y la otra no, heredarla
@@ -223,8 +225,10 @@ app.get('/api/ai/status', (req: Request, res: Response) => {
  * Supports: page, limit, category, source, search
  */
 app.get('/api/news', (req: Request, res: Response) => {
-  const page = Math.max(1, parseInt(String(req.query.page || '1'), 10));
-  const limit = Math.max(1, Math.min(50, parseInt(String(req.query.limit || '18'), 10)));
+  const rawPage = Number(req.query.page ?? 1);
+  const rawLimit = Number(req.query.limit ?? 18);
+  const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+  const limit = Number.isSafeInteger(rawLimit) && rawLimit > 0 ? Math.min(50, rawLimit) : 18;
   const category = req.query.category ? String(req.query.category).toLowerCase() : undefined;
   const source = req.query.source ? String(req.query.source).toLowerCase() : undefined;
   const search = req.query.search ? String(req.query.search).toLowerCase().trim() : undefined;
