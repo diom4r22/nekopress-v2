@@ -529,6 +529,7 @@ export class AnimeLiveService {
           titleJapanese: m.title.native,
           day,
           timeJST,
+          airingAt: m.nextAiringEpisode?.airingAt ?? null,
           timeUTC: 'Simulcast Global',
           platform,
           platformUrl,

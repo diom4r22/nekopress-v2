@@ -497,7 +497,7 @@ export const App: React.FC = () => {
             </button>
             <span>·</span>
             <button onClick={() => handleSectionChange('schedule')} className="hover:text-red-500 cursor-pointer">
-              Calendario JST
+              Calendario
             </button>
             <span>·</span>
             <button onClick={() => handleSectionChange('ranking')} className="hover:text-red-500 cursor-pointer">
