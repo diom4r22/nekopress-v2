@@ -11,6 +11,8 @@ import { formatTimeAgo } from './HeroCover.js';
 import { headline, storyText, videoId } from '../lib/story.js';
 import { PosterImage } from './PosterImage.js';
 
+import { HomeSearch } from './HomeSearch.js';
+
 const VisualThumb: React.FC<{
   item: NewsItem;
   className?: string;
@@ -63,6 +65,7 @@ export interface ShibuyaStreamLayoutProps {
   isBookmarked?: (kind: 'news', id: string) => boolean;
   onToggleBookmark?: (item: NewsItem) => void;
   isLoading?: boolean;
+  discoveryLoading: boolean;
 }
 
 export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
@@ -87,6 +90,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
   isBookmarked,
   onToggleBookmark,
   isLoading = false,
+  discoveryLoading,
 }) => {
   const [clock, setClock] = useState(Date.now);
   const pin = filteredNews.find(n => n.featured && n.featured.until > Math.max(clock, Date.now()));
@@ -103,6 +107,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
     return [...(pin ? [pin] : []), ...withImg, ...withoutImg];
   }, [filteredNews, pin]);
 
+  const searching = !!searchQuery.trim();
   const hero = orderedNews[0];
   const heroIntro = pin?.featured?.intro || (hero && storyText(hero).intro);
   const videos = filteredNews.filter(item => videoId(item.url)).slice(0, 4);
@@ -117,8 +122,8 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
   return (
     <div className="w-full pb-16 space-y-10">
       {/* 1. Full-Bleed Cinematic Hero Stage */}
-      <section className="relative w-full min-h-[500px] lg:min-h-[540px] bg-[#09090c] overflow-hidden flex flex-col justify-between">
-        {hero && (
+      <section className={`relative w-full bg-[#09090c] overflow-hidden flex flex-col ${searching ? '' : 'min-h-[500px] lg:min-h-[540px] justify-between'}`}>
+        {!searching && hero && (
           <div className="absolute inset-0">
             <VisualThumb item={pin?.featured?.image ? { ...hero, imageUrl: pin.featured.image } : hero} className="w-full h-full" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#09090c] via-[#09090c]/60 to-transparent" />
@@ -177,8 +182,9 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
             <div className="relative w-44 sm:w-56">
               <Search className="w-3.5 h-3.5 text-white/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                type="text"
-                placeholder="Buscar noticia o anime..."
+                type="search"
+                aria-label="Buscar en NekoPress"
+                placeholder="Buscar en NekoPress"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-full bg-black/55 backdrop-blur-md border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-red-600"
@@ -188,7 +194,9 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
         </div>
 
         {/* Hero Story + Crisp Dark Dock ("EN PORTADA AHORA") */}
-        {hero ? (
+        {searching ? <HomeSearch query={searchQuery.trim()} news={filteredNews} catalog={catalog} schedule={scheduleItems}
+          onArticle={onSelectNews} onAnime={onSelectAnime} onAnimeId={onSelectAnimeById}
+          onCalendar={() => onSectionChange('schedule')} loading={discoveryLoading} /> : hero ? (
           <div className="relative z-10 px-6 lg:px-10 pb-8 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center gap-3">
@@ -283,6 +291,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
         )}
       </section>
 
+      {!searching && <>
       {/* 2. Top 01-05 Tendencias Row (High-contrast numbers & badges) */}
       {topFive.length > 0 && (
         <section className="px-6 lg:px-10 space-y-4">
@@ -499,6 +508,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
           )}
         </aside>
       </section>
+      </>}
     </div>
   );
 };

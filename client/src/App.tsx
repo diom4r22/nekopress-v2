@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { LeftIconRail } from './components/LeftIconRail.js';
 import { MockupNewsLayout } from './components/MockupShowcase.js';
 import { ArticleModal } from './components/ArticleModal.js';
+import { trailerLookup } from './lib/discovery.js';
 import { AnimeCatalog } from './components/AnimeCatalog.js';
 import { AnimeModal } from './components/AnimeModal.js';
 import { ScheduleView } from './components/ScheduleView.js';
@@ -330,13 +331,13 @@ export const App: React.FC = () => {
 
   const handleCloseAnime = useCallback(() => {
     setSelectedAnime(null);
-    let back = '/anime';
+    let back = currentSection === 'news' ? '/' : '/anime';
     if (currentSection === 'schedule') back = '/calendario';
     if (currentSection === 'ranking') back = '/ranking';
     window.history.pushState({}, '', back);
   }, [currentSection]);
 
-  // Filtered news by search, source type, and category
+  // News filters apply to both the front page and search results.
   const filteredNews = useMemo(() => {
     return allNews.filter((item) => {
       // Source filter
@@ -348,19 +349,15 @@ export const App: React.FC = () => {
         if (item.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
       }
 
-      // Search filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const inTitle = item.title.toLowerCase().includes(q);
-        const inSummary = item.summary.toLowerCase().includes(q);
-        const inSource = item.sourceName.toLowerCase().includes(q);
-        const inTags = item.tags.some((t) => t.toLowerCase().includes(q));
-        if (!inTitle && !inSummary && !inSource && !inTags) return false;
-      }
-
       return true;
     });
-  }, [allNews, sourceFilter, selectedCategory, searchQuery]);
+  }, [allNews, sourceFilter, selectedCategory]);
+
+  const lookupTrailer = useMemo(() => trailerLookup(catalog), [catalog]);
+  const linkedAnime = selectedArticle ? lookupTrailer(selectedArticle) : undefined;
+  const nextAiring = linkedAnime && scheduleItems
+    .filter(item => item.animeId === linkedAnime.id && typeof item.airingAt === 'number' && item.airingAt * 1000 > Date.now())
+    .sort((a, b) => a.airingAt! - b.airingAt!)[0];
 
   const relatedModalArticles = useMemo(() => {
     if (!selectedArticle) return [];
@@ -389,6 +386,7 @@ export const App: React.FC = () => {
         <main className="flex-1 w-full">
           {currentSection === 'news' && (
             <MockupNewsLayout
+              discoveryLoading={isLoading || catalogLoading || scheduleLoading}
               filteredNews={filteredNews}
               allNews={allNews}
               scheduleItems={scheduleItems}
@@ -456,6 +454,9 @@ export const App: React.FC = () => {
       {/* 3. Article Reader Modal with Deep URL Linking */}
       <ArticleModal
         article={selectedArticle}
+        linkedAnime={linkedAnime}
+        nextAiringAt={nextAiring?.airingAt}
+        onOpenAnime={anime => { setSelectedArticle(null); handleSelectAnime(anime); }}
         onClose={handleCloseArticle}
         isBookmarked={selectedArticle ? isBookmarked('news', selectedArticle.id) : false}
         onToggleBookmark={(item) => handleToggleBookmark('news', item)}

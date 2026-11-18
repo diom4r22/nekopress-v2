@@ -26,12 +26,13 @@ export const AnimeModal: React.FC<AnimeModalProps> = ({
   const [relatedNews, setRelatedNews] = useState<NewsItem[]>([]);
 
   useEffect(() => {
+    if (!anime) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, anime]);
 
   // Fetch full details and related radar news
   useEffect(() => {

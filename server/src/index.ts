@@ -11,7 +11,7 @@ import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
 import { allowedUrl, handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
 import { classifyNews } from './services/editorial.js';
-import { activeFeature, editorialOverrides, saveEditorialChanges } from './db/database.js';
+import { activeFeature, articleAnimeLinks, editorialOverrides, saveEditorialChanges } from './db/database.js';
 import { NewsItem } from './types.js';
 import {
   listBookmarks,
@@ -124,8 +124,14 @@ function getTitleWords(title: string): Set<string> {
   );
 }
 
+function isVideoArticle(article: NewsItem) {
+  return /^https:\/\/(?:youtu\.be\/|(?:(?:www|m)\.)?youtube\.com\/watch\?)/i.test(article.url);
+}
+
 function areDuplicateNews(a: NewsItem, b: NewsItem): boolean {
   if (a.url === b.url || a.id === b.id) return true;
+  // Keep the playable video when another outlet covers the same announcement.
+  if (isVideoArticle(a) || isVideoArticle(b)) return false;
 
   const wordsA = getTitleWords(a.title);
   const wordsB = getTitleWords(b.title);
@@ -203,13 +209,14 @@ function editorialNews() {
   }
 
   const edits = editorialOverrides();
+  const links = articleAnimeLinks();
   const feature = activeFeature();
   return deduped.map(item => {
     const edit = edits.get(item.id);
     const featured = feature?.id === item.id && !edit?.hidden ? {
       until: feature.until, intro: feature.intro, image: toProxiedImageUrl(feature.image)
     } : undefined;
-    return { ...item, featured, category: edit?.category ?? item.category, overrideCategory: edit?.category ?? null, hidden: Boolean(edit?.hidden) };
+    return { ...item, animeOverrideId: links.get(item.id), featured, category: edit?.category ?? item.category, overrideCategory: edit?.category ?? null, hidden: Boolean(edit?.hidden) };
   });
 }
 
@@ -220,9 +227,11 @@ function getAllNews() {
 const categories: NewsItem['category'][] = ['Anime', 'Manga', 'Películas', 'Streaming', 'Videojuegos', 'Industria', 'General'];
 
 app.get('/api/admin/editorial', (_req, res) => {
-  const articles = editorialNews().map(({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }) =>
-    ({ id, slug, title, summary, sourceName, category, overrideCategory, hidden }));
-  res.json({ categories, articles, feature: activeFeature() ?? null, sources: ingestor.getSources() });
+  const articles = editorialNews().map(({ id, slug, title, summary, sourceName, category, overrideCategory, hidden, url, animeOverrideId }) =>
+    ({ id, slug, title, summary, sourceName, category, overrideCategory, hidden, url, animeOverrideId }));
+  const catalog = animeLiveService.getCatalog().map(({ id, title, year }) => ({ id, title, year }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  res.json({ categories, catalog, articles, feature: activeFeature() ?? null, sources: ingestor.getSources() });
 });
 
 app.put('/api/admin/editorial/:id', (req, res) => {
@@ -238,7 +247,12 @@ app.put('/api/admin/editorial/:id', (req, res) => {
     || typeof feature.image !== 'string' || feature.image.length > 2048 || (feature.image && !allowedUrl(feature.image)))) {
     return res.status(400).json({ error: 'Revisa el plazo, la bajada y el dominio de la imagen de portada.' });
   }
-  saveEditorialChanges(article.id, category, hidden, feature && { ...feature, id: article.id });
+  const { animeOverrideId } = req.body;
+  if (animeOverrideId != null && (!isVideoArticle(article) || !Number.isSafeInteger(animeOverrideId) ||
+      (animeOverrideId !== 0 && animeOverrideId !== article.animeOverrideId && !animeLiveService.getAnimeById(animeOverrideId)))) {
+    return res.status(400).json({ error: 'Selecciona una ficha del catálogo.' });
+  }
+  saveEditorialChanges(article.id, category, hidden, feature && { ...feature, id: article.id }, animeOverrideId);
   res.json({ saved: true });
 });
 

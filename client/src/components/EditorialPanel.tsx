@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import type { NewsSource } from '../types.js';
 
+import { videoId } from '../lib/story.js';
+
 interface Article {
+  url: string; animeOverrideId?: number;
   id: string; slug: string; title: string; summary: string; sourceName: string;
   category: string; overrideCategory: string | null; hidden: boolean;
 }
 interface Dashboard {
   feature: { id: string; until: number; intro: string; image: string } | null;
   categories: string[];
+  catalog: Array<{ id: number; title: string; year?: number }>;
   sources: Array<NewsSource & { lastError?: string }>;
   articles: Article[];
 }
@@ -19,6 +23,7 @@ export function EditorialPanel() {
   const [selected, setSelected] = useState<Article | null>(null);
   const [category, setCategory] = useState('');
   const [hidden, setHidden] = useState(false);
+  const [animeLink, setAnimeLink] = useState('');
   const [pin, setPin] = useState(false);
   const [until, setUntil] = useState('');
   const [intro, setIntro] = useState('');
@@ -47,6 +52,7 @@ export function EditorialPanel() {
     const feature = data?.feature?.id === article.id ? data.feature : null;
     const end = new Date(feature?.until ?? Date.now() + 86400000);
     setUntil(new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0,16));
+    setAnimeLink(article.animeOverrideId?.toString() ?? '');
     setPin(!!feature); setIntro(feature?.intro ?? ''); setImage(feature?.image ?? '');
     setSelected(article); setCategory(article.overrideCategory ?? ''); setHidden(article.hidden); setMessage('');
   }
@@ -86,13 +92,20 @@ export function EditorialPanel() {
           <label className="block">Buscar por titular o fuente<input className={input} value={search} onChange={e => { setSearch(e.target.value); setLimit(25); }} /></label>
           {selected && <form className="space-y-3 rounded border border-red-900 p-4" onSubmit={e => {
             e.preventDefault(); void run(async () => {
-              await request('/api/admin/editorial/' + encodeURIComponent(selected.id), { method: 'PUT', body: JSON.stringify({ category: category || null, hidden, feature: pin && !hidden ? { until: new Date(until).getTime(), intro: intro.trim(), image: image.trim() } : null }) });
+              await request('/api/admin/editorial/' + encodeURIComponent(selected.id), { method: 'PUT', body: JSON.stringify({ category: category || null, hidden, animeOverrideId: videoId(selected.url) ? (animeLink === '' ? null : Number(animeLink)) : undefined, feature: pin && !hidden ? { until: new Date(until).getTime(), intro: intro.trim(), image: image.trim() } : null }) });
               setData(await request('/api/admin/editorial')); setSelected(null); setMessage('Cambios guardados.');
             });
           }}><h3 className="text-lg font-semibold">{selected.title}</h3><p>{selected.summary}</p>
             <a className="underline" href={'/noticias/' + encodeURIComponent(selected.slug)} target="_blank" rel="noreferrer">Abrir noticia completa</a>
             <label className="block" htmlFor="editorial-category">Categoría</label><select id="editorial-category" className={input} value={category} onChange={e => setCategory(e.target.value)}>
               <option value="">Automática</option>{data.categories.map(c => <option key={c}>{c}</option>)}</select>
+            {videoId(selected.url) && <label className="block">Ficha del video
+              <select className={input} value={animeLink} onChange={e => setAnimeLink(e.target.value)}>
+                <option value="">Detectar por título</option><option value="0">Sin ficha</option>
+                {!!selected.animeOverrideId && !data.catalog.some(a => a.id === selected.animeOverrideId) &&
+                  <option value={selected.animeOverrideId}>Ficha {selected.animeOverrideId} (fuera del catálogo actual)</option>}
+                {data.catalog.map(a => <option key={a.id} value={a.id}>{a.title}{a.year ? ' · ' + a.year : ''}</option>)}
+              </select></label>}
             <label className="block"><input type="checkbox" checked={hidden} onChange={e => setHidden(e.target.checked)} /> Retirar de portada</label>
             {!hidden && <fieldset className="space-y-2"><label><input type="checkbox" checked={pin} onChange={e => setPin(e.target.checked)} /> Destacar en portada</label>
               {pin && <><label className="block">Destacar hasta (hora local)<input required type="datetime-local" className={input} value={until} onChange={e => setUntil(e.target.value)} /></label>

@@ -1,12 +1,15 @@
 import React, { useEffect } from 'react';
 import { X, ExternalLink, Calendar, User, Tag, Share2, Check } from 'lucide-react';
 import { headline, storyText, videoId } from '../lib/story.js';
-import { NewsItem } from '../types.js';
+import { AnimeItem, NewsItem } from '../types.js';
 import { formatTimeAgo } from './HeroCover.js';
 import { BookmarkButton } from './BookmarkButton.js';
 
 interface ArticleModalProps {
   article: NewsItem | null;
+  linkedAnime?: AnimeItem;
+  nextAiringAt?: number | null;
+  onOpenAnime?: (anime: AnimeItem) => void;
   onClose: () => void;
   isBookmarked?: boolean;
   onToggleBookmark?: (item: NewsItem) => void;
@@ -19,6 +22,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
   onClose,
   isBookmarked = false,
   onToggleBookmark,
+  linkedAnime, nextAiringAt, onOpenAnime,
   relatedArticles = [],
   onSelectArticle,
 }) => {
@@ -30,12 +34,13 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
   }, [article?.id, article?.imageUrl]);
 
   useEffect(() => {
+    if (!article) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, article]);
 
   const [playingId, setPlayingId] = React.useState<string | null>(null);
   useEffect(() => setPlayingId(null), [article?.id]);
@@ -124,6 +129,13 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
                 {article.imageUrl && !imgError && <img className="absolute inset-0 h-full w-full object-cover opacity-60" src={article.imageUrl} alt="" onError={() => setImgError(true)} />}
                 <span className="relative rounded-full bg-red-700 px-5 py-3 font-bold">▶ Reproducir video</span>
               </button>)}
+          {video && linkedAnime && onOpenAnime && <section className="border-l-4 border-red-600 pl-4">
+            <h3 className="font-serif text-xl font-bold">{linkedAnime.title}</h3>
+            {nextAiringAt && <p className="my-1 text-sm">Próxima emisión · <time dateTime={new Date(nextAiringAt * 1000).toISOString()}>
+              {new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }).format(nextAiringAt * 1000)}
+            </time></p>}
+            <button className="mt-1 text-sm font-semibold underline" onClick={() => onOpenAnime(linkedAnime)}>Ver ficha de {linkedAnime.title}</button>
+          </section>}
           {!video && article.imageUrl && !imgError && (
             <div className="relative w-full max-h-[480px] rounded-xl overflow-hidden bg-zinc-950 shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center justify-center">
               <img
