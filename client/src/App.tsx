@@ -506,7 +506,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="text-xs font-mono opacity-70">
-            <span>NekoPress v2.0 · Tokio 2026</span>
+            <span>NekoPress v2.0 · Tokio 2026</span> · <a className="hover:underline" href="/admin">Administración</a>
           </div>
         </div>
       </footer>

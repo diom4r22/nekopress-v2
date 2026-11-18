@@ -34,6 +34,10 @@ function isLikelyEnglishHeadline(text: string): boolean {
 
 export const FEEDS: FeedConfig[] = [
   {
+    id: 'aniplex-us-video', name: 'Aniplex of America', url: 'https://www.youtube.com/user/AniplexUS',
+    feedUrl: 'https://www.youtube.com/feeds/videos.xml?user=AniplexUS', language: 'en', country: 'US',
+  },
+  {
     id: 'crunchyroll-es',
     name: 'Crunchyroll Noticias',
     url: 'https://www.crunchyroll.com/es/news',
@@ -145,7 +149,7 @@ export function slugify(text: string): string {
 interface StoreData {
   items: NewsItem[];
   imageCache: Record<string, string | null>;
-  sourceStats: Record<string, { lastFetchedAt?: string; lastCount: number; error?: string }>;
+  sourceStats: Record<string, { lastFetchedAt?: string; lastSuccessAt?: string; lastCount: number; error?: string }>;
 }
 
 export class FeedIngestor {
@@ -314,7 +318,7 @@ export class FeedIngestor {
   getSources(): NewsSource[] {
     return FEEDS.map((f) => {
       const stats = this.store.sourceStats[f.id];
-      const count = this.store.items.filter((i) => i.sourceName.toLowerCase().includes(f.name.toLowerCase().split(' ')[0])).length;
+      const count = this.store.items.filter((i) => i.sourceName === f.name).length;
       return {
         id: f.id,
         name: f.name,
@@ -323,6 +327,7 @@ export class FeedIngestor {
         language: f.language,
         country: f.country,
         lastFetchedAt: stats?.lastFetchedAt,
+        lastSuccessAt: stats?.lastSuccessAt ?? (stats?.error ? undefined : stats?.lastFetchedAt),
         itemCount: count,
         status: stats?.error ? 'error' : 'active',
         lastError: stats?.error,
@@ -410,6 +415,11 @@ export class FeedIngestor {
             await Promise.all(
               batch.map(async (item) => {
                 if (!item.title || !item.link) return;
+                // El canal piloto aporta tráilers y anuncios con enlace al video original.
+                const officialVideo = feed.id === 'aniplex-us-video';
+                if (officialVideo && !/\b(?:trailers?|teasers?|announcements?|premieres?|pv)\b/i.test(item.title)) return;
+                const video = officialVideo ? /^https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})$/.exec(item.link.trim()) : null;
+                if (officialVideo && !video) return;
                 if (/\bpuzzles?\b|\bcrosswords?\b/i.test(item.title)) return;
                 const url = item.link.trim();
                 if (existingUrls.has(url)) {
@@ -428,7 +438,7 @@ export class FeedIngestor {
                       if (m && m[1]) feedImgCandidate = m[1];
                     }
 
-                    const resolvedImage = await this.resolveImage(url, feedImgCandidate);
+                    const resolvedImage = video ? `https://i.ytimg.com/vi/${video[1]}/hqdefault.jpg` : await this.resolveImage(url, feedImgCandidate);
                     if (resolvedImage) {
                       existing.imageUrl = resolvedImage;
                       healedItems.push(existing);
@@ -455,7 +465,7 @@ export class FeedIngestor {
                   if (m && m[1]) feedImgCandidate = m[1];
                 }
 
-                const resolvedImage = await this.resolveImage(url, feedImgCandidate);
+                const resolvedImage = video ? `https://i.ytimg.com/vi/${video[1]}/hqdefault.jpg` : await this.resolveImage(url, feedImgCandidate);
                 const title = cleanText(item.title, 200);
                 const summary = cleanText(item.contentSnippet || item.summary || item.content || '', 300);
                 const rawFull = cleanText((item as any)['content:encoded'] || item.content || item.contentSnippet || '', 2000);
@@ -495,6 +505,7 @@ export class FeedIngestor {
 
           this.store.sourceStats[feed.id] = {
             lastFetchedAt: new Date().toISOString(),
+            lastSuccessAt: new Date().toISOString(),
             lastCount: feedAdded,
           };
           console.log(`[FeedIngestor] ✓ ${feed.name}: +${feedAdded} notas.`);
@@ -502,6 +513,7 @@ export class FeedIngestor {
           console.warn(`[FeedIngestor] ⚠ Error en feed ${feed.name}:`, (err as Error).message);
           this.store.sourceStats[feed.id] = {
             lastFetchedAt: new Date().toISOString(),
+            lastSuccessAt: this.store.sourceStats[feed.id]?.lastSuccessAt ?? (this.store.sourceStats[feed.id]?.error ? undefined : this.store.sourceStats[feed.id]?.lastFetchedAt),
             lastCount: 0,
             error: (err as Error).message,
           };
@@ -516,7 +528,6 @@ export class FeedIngestor {
           (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
         );
       }
-      this.saveStore();
       try {
         if (newItems.length > 0) saveNewsArticles(newItems);
         if (healedItems.length > 0) saveNewsArticles(healedItems);
@@ -525,6 +536,7 @@ export class FeedIngestor {
       }
     }
 
+    this.saveStore();
     await this.translatePendingItems();
 
     this.isSyncing = false;
