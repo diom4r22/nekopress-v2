@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AnimeItem, DayOfWeek, NewsItem, ScheduleItem } from '../types.js';
 import { formatTimeAgo } from './HeroCover.js';
+import { headline, storyText, videoId } from '../lib/story.js';
 import { PosterImage } from './PosterImage.js';
 
 const VisualThumb: React.FC<{
@@ -22,21 +23,8 @@ const VisualThumb: React.FC<{
 
   if (!item.imageUrl || hasError) {
     return (
-      <div className={`${className} relative overflow-hidden bg-gradient-to-br from-zinc-900 via-[#14141a] to-black flex flex-col justify-between p-4 select-none`}>
-        <div className="absolute -right-6 -bottom-8 font-jp font-black text-7xl opacity-10 pointer-events-none text-red-600">
-          速報
-        </div>
-        <span className="w-fit px-2 py-0.5 text-[10px] font-mono font-black uppercase tracking-wider text-white bg-red-600 -skew-x-12">
-          {item.category}
-        </span>
-        <div className="z-10">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">
-            {item.sourceName}
-          </p>
-          <p className="font-serif font-bold text-sm text-zinc-100 line-clamp-2 mt-1">
-            {item.title}
-          </p>
-        </div>
+      <div aria-hidden="true" className={`${className} grid place-items-center bg-gradient-to-br from-[#391a20] via-[#201820] to-[#111016]`}>
+        <img src="/neko.svg" alt="" className="h-1/3 max-h-28 opacity-20 grayscale" />
       </div>
     );
   }
@@ -44,7 +32,7 @@ const VisualThumb: React.FC<{
   return (
     <img
       src={item.imageUrl}
-      alt={item.title}
+      alt={headline(item.title)}
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setHasError(true)}
@@ -108,9 +96,11 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
   }, [filteredNews]);
 
   const hero = orderedNews[0];
+  const heroIntro = hero && storyText(hero).intro;
+  const videos = filteredNews.filter(item => videoId(item.url)).slice(0, 4);
   const heroDock = orderedNews.slice(1, 5);
-  const topFive = orderedNews.length >= 10 ? orderedNews.slice(5, 10) : orderedNews.slice(1, 6);
-  const mainStartIndex = orderedNews.length >= 10 ? 10 : Math.min(6, orderedNews.length);
+  const topFive = orderedNews.slice(5, 10);
+  const mainStartIndex = Math.min(10, orderedNews.length);
   const mainFeed = orderedNews.slice(mainStartIndex, mainStartIndex + visibleCount);
   const todayShows = scheduleItems.filter((s) => s.day.toLowerCase() === todayDay.toLowerCase()).slice(0, 6);
   const radarFeed = allNews.filter((n) => n.isRadarFlash).slice(0, 6);
@@ -132,10 +122,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
         <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 px-6 lg:px-10 py-4 bg-gradient-to-b from-black/85 via-black/45 to-transparent">
           <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-serif font-black text-xl tracking-tight text-white">NEKOPRESS</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-mono font-black -skew-x-12 bg-red-600 text-white">
-                LIVE
-              </span>
+              <span aria-label="NekoPress" className="font-serif text-3xl font-bold tracking-tighter text-white">Neko<span className="italic text-red-400">Press</span></span>
             </div>
 
             <div className="flex items-center gap-4 text-xs font-semibold">
@@ -163,8 +150,8 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
             <div className="hidden md:flex items-center gap-1 bg-black/55 backdrop-blur-md rounded-full p-0.5 border border-white/15 text-[11px] font-mono">
               {[
                 { k: 'all', l: 'Todo' },
-                { k: 'rss', l: 'Agencias' },
-                { k: 'radar', l: 'Radar' },
+                { k: 'rss', l: 'Medios' },
+                { k: 'radar', l: 'Redes' },
               ].map((src) => (
                 <button
                   key={src.k}
@@ -209,12 +196,12 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                 onClick={() => onSelectNews(hero)}
                 className="font-sans font-black text-3xl sm:text-4xl lg:text-5xl text-white leading-[1.08] tracking-tight cursor-pointer hover:text-red-400 transition-colors"
               >
-                {hero.title}
+                {headline(hero.title)}
               </h1>
 
-              {hero.summary && (
+              {heroIntro && (
                 <p className="text-sm sm:text-base text-zinc-200 max-w-2xl line-clamp-2 leading-relaxed">
-                  {hero.summary}
+                  {heroIntro}
                 </p>
               )}
 
@@ -225,7 +212,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                   className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider -skew-x-12 cursor-pointer transition-transform active:scale-95 shadow-lg"
                 >
                   <Play className="w-3.5 h-3.5 fill-white skew-x-12" />
-                  <span className="skew-x-12">Leer Crónica Completa</span>
+                  <span className="skew-x-12">{videoId(hero.url) ? 'Ver video' : 'Leer noticia'}</span>
                 </button>
 
                 {onToggleBookmark && isBookmarked && (
@@ -251,7 +238,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                 <span className="px-2 py-0.5 bg-red-600 text-white -skew-x-12">
                   <span className="inline-block skew-x-12">EN PORTADA AHORA</span>
                 </span>
-                <span className="text-zinc-300">TOKIO LIVE</span>
+
               </div>
               {heroDock.map((item) => (
                 <button
@@ -268,7 +255,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                       {item.sourceName} · {formatTimeAgo(item.publishedAt)}
                     </p>
                     <p className="text-xs font-bold text-zinc-100 group-hover:text-red-400 line-clamp-2 leading-snug">
-                      {item.title}
+                      {headline(item.title)}
                     </p>
                   </div>
                 </button>
@@ -294,7 +281,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="font-sans font-black text-lg uppercase tracking-wider flex items-center gap-2 text-zinc-900 dark:text-white">
               <span className="w-1.5 h-5 bg-red-600 inline-block -skew-x-12" />
-              <span>Tendencias Globales · Top 5</span>
+              <span>En foco</span>
             </h2>
           </div>
 
@@ -315,7 +302,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                     {item.category}
                   </span>
                   <h3 className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-red-400 transition-colors">
-                    {item.title}
+                    {headline(item.title)}
                   </h3>
                 </div>
               </article>
@@ -324,12 +311,23 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
         </section>
       )}
 
+      {videos.length > 0 && <section aria-label="Sala de video" className="mx-6 rounded-xl bg-[#1c1419] p-5 text-white lg:mx-10">
+        <h2 className="mb-4 border-l-4 border-red-500 pl-3 font-serif text-3xl font-bold">Sala de video</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{videos.map(video =>
+          <button key={video.id} className="group text-left" onClick={() => onSelectNews(video)}>
+            <div className="relative aspect-video overflow-hidden rounded-lg"><VisualThumb item={video}/>
+              <Play aria-hidden="true" className="absolute bottom-3 left-3 rounded-full bg-red-600 p-2" size={36}/></div>
+            <span className="mt-2 block text-xs text-zinc-300">{video.sourceName}</span>
+            <strong>{headline(video.title)}</strong>
+          </button>)}</div>
+      </section>}
+
       {/* 3. Asymmetric Editorial Grid + Right Simulcast, Radar & Top Ranking */}
       <section className="px-6 lg:px-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-5">
           <h2 className="font-sans font-black text-lg uppercase tracking-wider flex items-center gap-2 text-zinc-900 dark:text-white">
             <span className="w-1.5 h-5 bg-red-600 inline-block -skew-x-12" />
-            <span>Últimos Despachos Verificados</span>
+            <span>Últimas noticias</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -370,8 +368,9 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                       {item.sourceName} · {formatTimeAgo(item.publishedAt)}
                     </p>
                     <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-red-400 line-clamp-2 leading-snug mt-1 transition-colors">
-                      {item.title}
+                      {headline(item.title)}
                     </h3>
+                    <p className="mt-1 line-clamp-2 text-xs text-zinc-200">{storyText(item).intro}</p>
                   </div>
                 </article>
               );
@@ -384,7 +383,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
               onClick={onLoadMore}
               className="w-full py-3 rounded-xl bg-zinc-200 dark:bg-[#121218] hover:bg-zinc-300 dark:hover:bg-white/10 border border-zinc-300 dark:border-white/10 text-xs font-mono font-bold uppercase tracking-widest text-zinc-800 dark:text-zinc-200 cursor-pointer transition-colors"
             >
-              Cargar más despachos ({orderedNews.length - (mainStartIndex + visibleCount)} restantes)
+              Ver más noticias ({orderedNews.length - (mainStartIndex + visibleCount)} restantes)
             </button>
           )}
         </div>
@@ -430,7 +429,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
             <div className="bg-white dark:bg-[#121218] border border-zinc-200 dark:border-white/10 rounded-xl p-5 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <h3 className="font-mono font-black text-xs uppercase tracking-wider text-red-500 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5" /> Radar en Tiempo Real
+                  <Zap className="w-3.5 h-3.5" /> Desde las redes
                 </h3>
               </div>
               <div className="space-y-3 divide-y divide-zinc-200 dark:divide-white/5">
@@ -445,7 +444,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
                       {item.sourceName} · {formatTimeAgo(item.publishedAt)}
                     </p>
                     <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-red-400 line-clamp-2 mt-0.5">
-                      {item.title.replace(/^⚡\s*RADAR X:\s*/i, '')}
+                      {headline(item.title)}
                     </p>
                   </button>
                 ))}
