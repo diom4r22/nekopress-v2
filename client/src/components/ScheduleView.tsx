@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Clock, Tv, ExternalLink, Sparkles, Filter, ChevronRight, Play } from 'lucide-react';
 import { ScheduleItem, DayOfWeek, AnimeItem } from '../types.js';
+import { broadcastInstant, weekdayIn } from '../lib/scheduleClock.js';
 import { PosterImage } from './PosterImage.js';
 
 interface ScheduleViewProps {
@@ -24,20 +25,32 @@ const DAYS: { key: DayOfWeek | 'all'; label: string; short: string }[] = [
 const PLATFORMS = ['Todas', 'Crunchyroll', 'Netflix', 'Disney+'];
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
-  scheduleItems,
-  todayDay,
+  scheduleItems: originals,
   isLoading,
   onSelectAnimeById,
 }) => {
   const [selectedDay, setSelectedDay] = useState<DayOfWeek | 'all'>('all');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('Todas');
 
+  const [clock, setClock] = useState<'local' | 'tokyo'>('local');
+  const zone = clock === 'local' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'Asia/Tokyo';
+  const todayDay = weekdayIn(new Date(), zone);
+  const scheduleItems = useMemo(() => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('es', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    return originals.map(item => {
+      const instant = broadcastInstant(item, now);
+      return { ...item, day: instant ? weekdayIn(instant, zone) : null,
+        displayTime: instant ? formatter.format(instant) : 'Hora por confirmar' };
+    });
+  }, [originals, zone]);
+
   // Filter items in memory (instant 0ms)
   const filteredItems = useMemo(() => {
     let result = [...scheduleItems];
 
     if (selectedDay !== 'all') {
-      result = result.filter((item) => item.day.toLowerCase() === selectedDay.toLowerCase());
+      result = result.filter((item) => item.day === selectedDay);
     }
 
     if (selectedPlatform !== 'Todas') {
@@ -53,7 +66,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const dayCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     scheduleItems.forEach((item) => {
-      counts[item.day] = (counts[item.day] || 0) + 1;
+      if (item.day) counts[item.day] = (counts[item.day] || 0) + 1;
     });
     return counts;
   }, [scheduleItems]);
@@ -88,20 +101,26 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             Calendario Semanal de Estrenos
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Programación de transmisión en cadenas de televisión de Japón (JST) y emisión simultánea en plataformas autorizadas.
+            Los días y las horas se muestran en {zone.replace(/_/g, ' ')}.
           </p>
         </div>
 
         {/* Live Day Indicator */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-mono shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-zinc-500">HOY EN TOKIO:</span>
+          <span className="text-zinc-500">HOY:</span>
           <span className="font-bold text-zinc-900 dark:text-white uppercase">
             {todayDay}
           </span>
         </div>
       </div>
 
+      <label className="flex items-center gap-3 text-sm font-semibold">Zona horaria
+        <select value={clock} onChange={e => setClock(e.target.value === 'tokyo' ? 'tokyo' : 'local')}
+          className="rounded border border-zinc-400 bg-white px-3 py-2 dark:bg-zinc-900">
+          <option value="local">Mi hora local</option><option value="tokyo">Hora de Tokio</option>
+        </select>
+      </label>
       {/* 2. Weekday Selector Navigation */}
       <div className="bg-white dark:bg-zinc-900/80 p-3 sm:p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-2xs space-y-3">
         {/* Days Carousel Tabs */}
@@ -199,7 +218,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {/* 5. Schedule Items List / Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredItems.map((item) => {
-          const isToday = item.day.toLowerCase() === todayDay.toLowerCase();
+          const isToday = item.day === todayDay;
 
           return (
             <article
@@ -223,7 +242,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                 {/* Day Tag overlay */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-zinc-950/85 text-white backdrop-blur">
-                    {item.day}
+                    {item.day ?? 'Por confirmar'}
                   </span>
                   {isToday && (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-red-600 text-white animate-pulse">
@@ -240,7 +259,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                     <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 font-semibold">
                       <Clock className="w-3.5 h-3.5 text-red-600" />
-                      <span>{item.timeJST}</span>
+                      <span>{item.displayTime}</span>
                     </span>
 
                     <span

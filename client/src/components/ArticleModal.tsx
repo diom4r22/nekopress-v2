@@ -164,6 +164,14 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({
             </div>
           )}
 
+          {!!article.coverage?.length && <section className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <h3 className="font-serif text-xl font-bold">Más cobertura</h3>
+            <ul className="mt-2 space-y-2">{article.coverage.map(source =>
+              <li key={source.url}><a className="block rounded p-2 hover:underline" href={source.url} target="_blank" rel="noreferrer">
+                <span className="block text-xs text-zinc-500">{source.name}</span>{headline(source.title)}
+              </a></li>)}</ul>
+          </section>}
+
           {relatedArticles.length > 0 && onSelectArticle && (
             <div className="pt-5 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
               <h4 className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400">

@@ -151,6 +151,16 @@ function areDuplicateNews(a: NewsItem, b: NewsItem): boolean {
   );
 }
 
+// A weak match can suppress a repetitive card, but should not be attributed as coverage.
+function supportsCoverage(a: string, b: string) {
+  if (a.trim().toLowerCase() === b.trim().toLowerCase()) return true;
+  const left = getTitleWords(a);
+  const right = getTitleWords(b);
+  const shared = [...left].filter(word => right.has(word)).length;
+  const numbers = (title: string) => (title.match(/\d+/g) ?? []).sort().join(',');
+  return shared >= 3 && shared / new Set([...left, ...right]).size >= 0.6 && numbers(a) === numbers(b);
+}
+
 // Combine RSS agency news and X Radar instant flash scoops con deduplicación inteligente
 function editorialNews() {
   const rssItems = ingestor.getItems();
@@ -162,7 +172,7 @@ function editorialNews() {
   const deduped: NewsItem[] = [];
 
   for (const item of rawList) {
-    const proxied = { ...item, category: classifyNews(item.title, item.summary, item.category),
+    const proxied: NewsItem = { ...item, category: classifyNews(item.title, item.summary, item.category),
       imageUrl: toProxiedImageUrl(item.imageUrl) };
     const existing = deduped.find((d) => areDuplicateNews(d, proxied));
     if (existing) {
@@ -176,7 +186,14 @@ function editorialNews() {
       // Priorizar la versión en español sobre versiones en inglés
       const isItemEs = proxied.language === 'es' || proxied.sourceName.includes('Noticias') || proxied.sourceName.includes('Ramen') || proxied.sourceName.includes('Anmo');
       const isExistingEs = existing.language === 'es' || existing.sourceName.includes('Noticias') || existing.sourceName.includes('Ramen') || existing.sourceName.includes('Anmo');
-      if (isItemEs && !isExistingEs) {
+      const replace = isItemEs && !isExistingEs;
+      const primary = replace ? proxied : existing;
+      const secondary = replace ? existing : proxied;
+      const links = [...(existing.coverage ?? []), { name: secondary.sourceName, url: secondary.url, title: secondary.title }];
+      primary.coverage = [...new Map(links.filter(source =>
+        source.url !== primary.url && supportsCoverage(primary.title, source.title) && /^https?:\/\//i.test(source.url)
+      ).map(source => [source.url, source])).values()];
+      if (replace) {
         const idx = deduped.indexOf(existing);
         deduped[idx] = proxied;
       }

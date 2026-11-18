@@ -16,6 +16,7 @@ export interface NewsItem {
   content?: string;
   url: string;
   sourceName: string;
+  coverage?: { name: string; url: string; title: string }[];
   sourceUrl: string;
   author?: string;
   publishedAt: string;
@@ -91,6 +92,7 @@ export interface ScheduleItem {
   titleJapanese?: string;
   day: DayOfWeek;
   timeJST: string;
+  airingAt?: number | null;
   timeUTC: string;
   platform: 'Crunchyroll' | 'Netflix' | 'Disney+' | 'Prime Video' | 'Anime Onegai' | 'Simulcast';
   platformUrl?: string;
