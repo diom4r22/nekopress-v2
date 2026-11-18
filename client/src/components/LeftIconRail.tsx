@@ -55,9 +55,9 @@ export const LeftIconRail: React.FC<LeftIconRailProps> = ({
           type="button"
           onClick={() => onSectionChange('news')}
           title="NekoPress"
-          className="w-10 h-10 -skew-x-6 bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-jp font-black text-xl shadow-md cursor-pointer hover:scale-105 transition-transform"
+          className="w-10 h-10 rounded-lg text-white flex items-center justify-center font-jp font-black text-xl shadow-md cursor-pointer hover:scale-105 transition-transform"
         >
-          <span className="skew-x-6">猫</span>
+          <img src="/neko.svg" alt="NekoPress" width="40" height="40" />
         </button>
         <span className="text-[9px] font-mono tracking-tighter text-zinc-500 dark:text-zinc-400">
           {tokyoTime}

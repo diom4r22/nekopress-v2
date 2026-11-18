@@ -1,3 +1,4 @@
+import { headline } from '../lib/story.js';
 import React, { useState } from 'react';
 import { Sparkles, ArrowRight, Clock } from 'lucide-react';
 import { NewsItem } from '../types.js';
@@ -54,7 +55,7 @@ export const HeroCover: React.FC<HeroCoverProps> = ({ story, onSelectStory }) =>
             <div className="flex items-center gap-2 mb-3">
               {story.isRadarFlash ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold uppercase tracking-wider bg-linear-to-r from-red-600 to-amber-500 text-white shadow-xs animate-pulse">
-                  {story.url.includes('bsky.app') ? '⚡ RADAR EN VIVO' : '⚡ RADAR X / FLASH EXCLUSIVA'}
+                  Desde las redes
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-red-600 text-white">
@@ -68,7 +69,7 @@ export const HeroCover: React.FC<HeroCoverProps> = ({ story, onSelectStory }) =>
             </div>
 
             <h1 className="font-serif font-bold text-2xl sm:text-3xl lg:text-4xl leading-tight text-zinc-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
-              {story.title}
+              {headline(story.title)}
             </h1>
 
             {story.summary && (
@@ -105,7 +106,7 @@ export const HeroCover: React.FC<HeroCoverProps> = ({ story, onSelectStory }) =>
                   {story.category}
                 </span>
                 <span className="text-xs font-mono font-semibold text-zinc-500 uppercase tracking-widest">
-                  DESPACHO VERIFICADO
+                  NEKOPRESS
                 </span>
               </div>
               <div className="text-center my-auto z-10">
@@ -116,14 +117,14 @@ export const HeroCover: React.FC<HeroCoverProps> = ({ story, onSelectStory }) =>
               </div>
               <div className="flex items-center justify-between text-xs font-mono text-zinc-500 border-t border-zinc-800/80 pt-3 z-10">
                 <span>INTELIGENCIA ANIME EN TIEMPO REAL</span>
-                <span>DESPACHO OFICIAL</span>
+                <span>NOTICIA</span>
               </div>
               <div className="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:20px_20px] opacity-30" />
             </div>
           ) : (
             <img
               src={story.imageUrl}
-              alt={story.title}
+              alt={headline(story.title)}
               loading="eager"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"

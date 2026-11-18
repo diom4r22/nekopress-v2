@@ -159,6 +159,7 @@ export class FeedIngestor {
     customFields: {
       item: [
         ['media:thumbnail', 'mediaThumbnail'],
+        ['media:group', 'mediaGroup'],
         ['media:content', 'mediaContent'],
         ['content:encoded', 'contentEncoded'],
       ],
@@ -467,8 +468,9 @@ export class FeedIngestor {
 
                 const resolvedImage = video ? `https://i.ytimg.com/vi/${video[1]}/hqdefault.jpg` : await this.resolveImage(url, feedImgCandidate);
                 const title = cleanText(item.title, 200);
-                const summary = cleanText(item.contentSnippet || item.summary || item.content || '', 300);
-                const rawFull = cleanText((item as any)['content:encoded'] || item.content || item.contentSnippet || '', 2000);
+                const videoDescription = (item as { mediaGroup?: { 'media:description'?: string[] } }).mediaGroup?.['media:description']?.[0];
+                const summary = cleanText(videoDescription || item.contentSnippet || item.summary || item.content || '', 300);
+                const rawFull = cleanText(videoDescription || (item as any)['content:encoded'] || item.content || item.contentSnippet || '', 2000);
                 const hash = crypto.createHash('sha256').update(url).digest('hex').slice(0, 8);
 
                 const lead = summary || title;

@@ -1,3 +1,4 @@
+import { headline } from '../lib/story.js';
 import React, { useEffect, useState } from 'react';
 import { X, Star, Film, Tv, Calendar, Building2, Tag, ExternalLink, Newspaper, ArrowRight } from 'lucide-react';
 import { AnimeItem, NewsItem } from '../types.js';
@@ -189,7 +190,7 @@ export const AnimeModal: React.FC<AnimeModalProps> = ({
               <div className="flex items-center gap-2">
                 <Newspaper className="w-4 h-4 text-red-600" />
                 <h4 className="font-serif font-bold text-lg text-zinc-900 dark:text-white">
-                  Despachos Recientes del Radar relacionados con esta obra
+                  Noticias de esta obra
                 </h4>
               </div>
 
@@ -210,7 +211,7 @@ export const AnimeModal: React.FC<AnimeModalProps> = ({
                         {news.sourceName}
                       </div>
                       <h5 className="font-serif font-semibold text-xs sm:text-sm text-zinc-900 dark:text-zinc-200 group-hover:text-red-600 transition-colors truncate">
-                        {news.title}
+                        {headline(news.title)}
                       </h5>
                     </div>
                     <ArrowRight className="w-4 h-4 shrink-0 text-zinc-400 group-hover:translate-x-0.5 group-hover:text-red-600 transition-transform" />

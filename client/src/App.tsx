@@ -484,12 +484,12 @@ export const App: React.FC = () => {
               猫PRESS
             </span>
             <span>·</span>
-            <span>Anime Intelligence & Streaming Wire</span>
+            <span>Anime, manga y cultura japonesa</span>
           </div>
 
           <div className="flex flex-wrap justify-center items-center gap-4 text-xs font-semibold">
             <button onClick={() => handleSectionChange('news')} className="hover:text-red-500 cursor-pointer">
-              Despachos
+              Noticias
             </button>
             <span>·</span>
             <button onClick={() => handleSectionChange('catalog')} className="hover:text-red-500 cursor-pointer">

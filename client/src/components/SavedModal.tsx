@@ -1,3 +1,4 @@
+import { headline } from '../lib/story.js';
 import React, { useEffect } from 'react';
 import { X, Bookmark, Newspaper, Film } from 'lucide-react';
 import { AnimeItem, NewsItem } from '../types.js';
@@ -76,7 +77,7 @@ export const SavedModal: React.FC<SavedModalProps> = ({
             <section className="space-y-2">
               <h3 className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-500">
                 <Newspaper className="w-3.5 h-3.5 text-red-600" />
-                Despachos ({news.length})
+                Noticias ({news.length})
               </h3>
               {news.map((entry) => (
                 <div
@@ -89,7 +90,7 @@ export const SavedModal: React.FC<SavedModalProps> = ({
                     className="min-w-0 text-left cursor-pointer"
                   >
                     <p className="font-serif font-bold text-sm text-zinc-900 dark:text-white line-clamp-2 hover:text-red-600">
-                      {(entry.item as NewsItem).title}
+                      {headline((entry.item as NewsItem).title)}
                     </p>
                     <p className="text-[11px] font-mono text-zinc-500 mt-1">
                       {(entry.item as NewsItem).sourceName}
