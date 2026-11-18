@@ -8,6 +8,9 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import https from 'https';
+import dns from 'dns/promises';
+import net from 'net';
 import { fileURLToPath } from 'url';
 import { Request, Response } from 'express';
 
@@ -84,6 +87,59 @@ function buildFallbackSvg(label = 'NEKOPRESS'): Buffer {
   return Buffer.from(svg, 'utf8');
 }
 
+// Only known image providers are permitted. Resolve once and pin the public IP
+// for the connection, so DNS changes cannot redirect a request to a private host.
+const IMAGE_HOSTS = new Set([
+  'a.storyblok.com', 'www.animenewsnetwork.com', 'animeanime.jp',
+  'img.anmosugoi.com', 'static.animecorner.me', 'cdn.myanimelist.net',
+  'ramenparados.com', 's4.anilist.co', 's3.anilist.co', 's2.anilist.co',
+  'cdn.bsky.app', 'cdn.animenewsnetwork.com', 'images.animecorner.me',
+]);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+const blocked = new net.BlockList();
+for (const [address, prefix] of [['0.0.0.0',8], ['10.0.0.0',8], ['100.64.0.0',10], ['127.0.0.0',8], ['169.254.0.0',16], ['172.16.0.0',12], ['192.168.0.0',16], ['192.0.0.0',24], ['198.18.0.0',15], ['224.0.0.0',4], ['240.0.0.0',4]] as Array<[string, number]>) blocked.addSubnet(address, prefix, 'ipv4');
+for (const [address, prefix] of [['::',128], ['::1',128], ['::ffff:0:0',96], ['fc00::',7], ['fe80::',10], ['ff00::',8]] as Array<[string, number]>) blocked.addSubnet(address, prefix, 'ipv6');
+
+function allowedUrl(raw: string): URL | null {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !IMAGE_HOSTS.has(url.hostname.toLowerCase())) return null;
+    return url;
+  } catch { return null; }
+}
+
+async function downloadImage(raw: string): Promise<{buffer: Buffer; contentType: string} | null> {
+  const url = allowedUrl(raw);
+  if (!url) return null;
+  const addresses = await dns.lookup(url.hostname, { all: true });
+  if (!addresses.length || addresses.some(a => blocked.check(a.address, a.family === 6 ? 'ipv6' : 'ipv4'))) return null;
+  const address = addresses[0];
+  return new Promise((resolve) => {
+    const req = https.get(url, {
+      family: address.family,
+      lookup: (_hostname, _options, callback) => callback(null, address.address, address.family),
+      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif', Referer: `${url.origin}/` },
+      timeout: 9000,
+    }, response => {
+      const contentType = (response.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+      if (response.statusCode !== 200 || !IMAGE_TYPES.has(contentType) || Number(response.headers['content-length'] || 0) > MAX_IMAGE_BYTES) {
+        response.resume(); resolve(null); return;
+      }
+      const chunks: Buffer[] = []; let size = 0;
+      response.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > MAX_IMAGE_BYTES) { response.destroy(); resolve(null); }
+        else chunks.push(chunk);
+      });
+      response.on('end', () => resolve(size >= 100 ? { buffer: Buffer.concat(chunks), contentType } : null));
+      response.on('error', () => resolve(null));
+    });
+    req.on('timeout', () => req.destroy());
+    req.on('error', () => resolve(null));
+  });
+}
+
 async function fetchUpstreamImage(
   targetUrl: string,
   cacheFilePath: string,
@@ -108,34 +164,9 @@ async function fetchUpstreamImage(
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        const abortController = new AbortController();
-        const timeout = setTimeout(() => abortController.abort(), 9000);
-
-        const upstream = await fetch(targetUrl, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-            Referer: `${origin}/`,
-          },
-          signal: abortController.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!upstream.ok) {
-          if ((upstream.status === 429 || upstream.status >= 500) && attempt < 2) {
-            await new Promise((r) => setTimeout(r, 600 * attempt));
-            continue;
-          }
-          return null;
-        }
-
-        const contentType = upstream.headers.get('content-type') || 'image/jpeg';
-        const buffer = Buffer.from(await upstream.arrayBuffer());
-
-        if (buffer.length < 100 || contentType.includes('text/html')) {
-          return null;
-        }
+        const downloaded = await downloadImage(targetUrl);
+        if (!downloaded) return null;
+        const { buffer, contentType } = downloaded;
 
         // Guardado atómico en caché para evitar archivos truncados en lecturas concurrentes
         try {
@@ -183,10 +214,11 @@ async function fetchUpstreamImage(
 }
 
 export async function handleImageProxy(req: Request, res: Response) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   const rawParam = typeof req.query.url === 'string' ? req.query.url.trim() : '';
   const targetUrl = unwrapImageUrl(rawParam);
 
-  if (!targetUrl || (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://'))) {
+  if (!allowedUrl(targetUrl)) {
     const fallback = buildFallbackSvg();
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=300');
@@ -201,9 +233,10 @@ export async function handleImageProxy(req: Request, res: Response) {
   if (fs.existsSync(cacheFilePath) && fs.existsSync(metaFilePath)) {
     try {
       const stat = fs.statSync(cacheFilePath);
-      if (stat.size >= 100) {
+      if (stat.size >= 100 && stat.size <= MAX_IMAGE_BYTES) {
         const meta = JSON.parse(fs.readFileSync(metaFilePath, 'utf8'));
-        res.setHeader('Content-Type', meta.contentType || 'image/jpeg');
+        if (!IMAGE_TYPES.has(meta.contentType)) throw new Error('Invalid cached content type');
+        res.setHeader('Content-Type', meta.contentType);
         res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
         res.setHeader('X-Proxy-Cache', 'HIT');
         return fs.createReadStream(cacheFilePath).pipe(res);

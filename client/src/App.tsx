@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { LeftIconRail } from './components/LeftIconRail.js';
 import { MockupNewsLayout } from './components/MockupShowcase.js';
 import { ArticleModal } from './components/ArticleModal.js';
@@ -11,10 +11,6 @@ import {
   SavedItem,
   readSaved,
   writeSaved,
-  pushBookmark,
-  removeBookmarkRemote,
-  pullBookmarks,
-  savedKey,
   BookmarkKind,
 } from './lib/bookmarks.js';
 import { NewsItem, AnimeItem, ScheduleItem, DayOfWeek } from './types.js';
@@ -32,6 +28,8 @@ export const App: React.FC = () => {
   });
 
   const [allNews, setAllNews] = useState<NewsItem[]>([]);
+  const allNewsRef = useRef<NewsItem[]>([]);
+  allNewsRef.current = allNews;
   const [catalog, setCatalog] = useState<AnimeItem[]>([]);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
   const [todayDay, setTodayDay] = useState<DayOfWeek>('sabado');
@@ -84,7 +82,6 @@ export const App: React.FC = () => {
         let updated: SavedItem[];
         if (exists) {
           updated = prev.filter((s) => !(s.kind === kind && s.id === id));
-          removeBookmarkRemote(kind, id).catch(() => {});
         } else {
           const newItem: SavedItem = {
             kind,
@@ -93,7 +90,6 @@ export const App: React.FC = () => {
             item: item as any,
           };
           updated = [newItem, ...prev];
-          pushBookmark(newItem).catch(() => {});
         }
         writeSaved(updated);
         return updated;
@@ -101,25 +97,6 @@ export const App: React.FC = () => {
     },
     []
   );
-
-  // Pull bookmarks on mount to sync with backend SQLite
-  useEffect(() => {
-    pullBookmarks()
-      .then((remote) => {
-        if (remote && remote.length > 0) {
-          setSavedItems((prev) => {
-            const map = new Map<string, SavedItem>();
-            for (const item of [...prev, ...remote]) {
-              map.set(savedKey(item.kind, item.id), item);
-            }
-            const merged = Array.from(map.values());
-            writeSaved(merged);
-            return merged;
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Theme state (Shibuya Stream #1 cinematic dark by default)
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -178,23 +155,26 @@ export const App: React.FC = () => {
       setIsSyncing(true);
     }
     try {
-      if (isManual) {
-        await fetch('/api/news/sync', { method: 'POST' }).catch(() => null);
+      const collected: NewsItem[] = [];
+      let page = 1;
+      let hasNext = true;
+      while (hasNext) {
+        const response = await fetch(`/api/news?limit=50&page=${page}`);
+        if (!response.ok) throw new Error(`Error al cargar noticias: ${response.status}`);
+        const json = await response.json();
+        if (!Array.isArray(json.data)) throw new Error('Respuesta de noticias inválida');
+        collected.push(...json.data);
+        hasNext = Boolean(json.pagination?.hasNext) && json.data.length > 0;
+        page++;
       }
-
-      const resNews = await fetch('/api/news?limit=100');
-
-      if (resNews.ok) {
-        const json = await resNews.json();
-        if (json.data && Array.isArray(json.data)) {
-          setAllNews(json.data);
-
-          // Deep linking: check if URL contains /noticias/:slug on initial load
-          const match = window.location.pathname.match(/\/noticias\/([^/?#]+)/);
-          if (match && match[1]) {
-            const found = json.data.find((n: NewsItem) => n.slug === match[1]);
-            if (found) setSelectedArticle(found);
-          }
+      setAllNews(collected);
+      const match = window.location.pathname.match(/\/noticias\/([^/?#]+)/);
+      if (match && match[1]) {
+        const found = collected.find((n) => n.slug === match[1]);
+        if (found) setSelectedArticle(found);
+        else {
+          const response = await fetch(`/api/news/${encodeURIComponent(decodeURIComponent(match[1]))}`);
+          if (response.ok) setSelectedArticle((await response.json()).data);
         }
       }
     } catch (err) {
@@ -244,7 +224,7 @@ export const App: React.FC = () => {
         setSelectedAnime(null);
         const matchNews = path.match(/\/noticias\/([^/?#]+)/);
         if (matchNews && matchNews[1]) {
-          const found = allNews.find((n) => n.slug === matchNews[1]);
+          const found = allNewsRef.current.find((n) => n.slug === matchNews[1]);
           if (found) setSelectedArticle(found);
         } else {
           setSelectedArticle(null);
@@ -258,7 +238,7 @@ export const App: React.FC = () => {
       clearInterval(pollTimer);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [fetchNews, allNews]);
+  }, [fetchNews]);
 
   // Section switcher
   const handleSectionChange = useCallback((section: 'news' | 'catalog' | 'schedule' | 'ranking') => {
@@ -488,7 +468,7 @@ export const App: React.FC = () => {
             <span>Anime Intelligence & Streaming Wire</span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-semibold">
+          <div className="flex flex-wrap justify-center items-center gap-4 text-xs font-semibold">
             <button onClick={() => handleSectionChange('news')} className="hover:text-red-500 cursor-pointer">
               Despachos
             </button>

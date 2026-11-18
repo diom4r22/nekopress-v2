@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 html {
+  overflow-x: clip;
   color-scheme: light;
 }
 

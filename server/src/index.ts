@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { FeedIngestor } from './services/feedIngestor.js';
@@ -34,6 +35,23 @@ const ingestor = new FeedIngestor();
 
 app.use(cors({ origin: '*' }));
 app.use(express.json());
+
+// Server-side user records have no authentication. Keep favorites on the device
+// until real accounts are available; never expose the shared legacy records.
+app.use(['/api/bookmarks', '/api/user'], (_req, res) => {
+  res.status(403).json({ error: 'La persistencia compartida está desactivada.' });
+});
+
+// Scheduled ingestion continues without exposing administrative actions publicly.
+app.use(['/api/radar/ingest', '/api/news/sync'], (req, res, next) => {
+  const secret = process.env.ADMIN_API_TOKEN;
+  const supplied = req.get('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1] || '';
+  if (!secret || !supplied || Buffer.byteLength(secret) !== Buffer.byteLength(supplied) ||
+      !crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(supplied))) {
+    return res.status(403).json({ error: 'Acceso administrativo requerido.' });
+  }
+  next();
+});
 
 // Proxy local de imágenes para evitar fallos de CORS y hotlink
 app.get('/api/image-proxy', handleImageProxy);
