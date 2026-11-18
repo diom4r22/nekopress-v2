@@ -6,6 +6,7 @@ interface Article {
   category: string; overrideCategory: string | null; hidden: boolean;
 }
 interface Dashboard {
+  feature: { id: string; until: number; intro: string; image: string } | null;
   categories: string[];
   sources: Array<NewsSource & { lastError?: string }>;
   articles: Article[];
@@ -18,6 +19,10 @@ export function EditorialPanel() {
   const [selected, setSelected] = useState<Article | null>(null);
   const [category, setCategory] = useState('');
   const [hidden, setHidden] = useState(false);
+  const [pin, setPin] = useState(false);
+  const [until, setUntil] = useState('');
+  const [intro, setIntro] = useState('');
+  const [image, setImage] = useState('');
   const [limit, setLimit] = useState(25);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,7 +32,7 @@ export function EditorialPanel() {
       Authorization: `Bearer ${token}`, 'Content-Type': 'application/json',
     } });
     if (response.status === 403) throw new Error('Acceso denegado. Comprueba la clave de administración.');
-    if (!response.ok) throw new Error('La petición falló. Puedes volver a intentarlo.');
+    if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || 'La petición falló.');
     return response.json();
   }
 
@@ -39,6 +44,10 @@ export function EditorialPanel() {
   }
 
   function select(article: Article) {
+    const feature = data?.feature?.id === article.id ? data.feature : null;
+    const end = new Date(feature?.until ?? Date.now() + 86400000);
+    setUntil(new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0,16));
+    setPin(!!feature); setIntro(feature?.intro ?? ''); setImage(feature?.image ?? '');
     setSelected(article); setCategory(article.overrideCategory ?? ''); setHidden(article.hidden); setMessage('');
   }
 
@@ -77,7 +86,7 @@ export function EditorialPanel() {
           <label className="block">Buscar por titular o fuente<input className={input} value={search} onChange={e => { setSearch(e.target.value); setLimit(25); }} /></label>
           {selected && <form className="space-y-3 rounded border border-red-900 p-4" onSubmit={e => {
             e.preventDefault(); void run(async () => {
-              await request('/api/admin/editorial/' + encodeURIComponent(selected.id), { method: 'PUT', body: JSON.stringify({ category: category || null, hidden }) });
+              await request('/api/admin/editorial/' + encodeURIComponent(selected.id), { method: 'PUT', body: JSON.stringify({ category: category || null, hidden, feature: pin && !hidden ? { until: new Date(until).getTime(), intro: intro.trim(), image: image.trim() } : null }) });
               setData(await request('/api/admin/editorial')); setSelected(null); setMessage('Cambios guardados.');
             });
           }}><h3 className="text-lg font-semibold">{selected.title}</h3><p>{selected.summary}</p>
@@ -85,12 +94,17 @@ export function EditorialPanel() {
             <label className="block" htmlFor="editorial-category">Categoría</label><select id="editorial-category" className={input} value={category} onChange={e => setCategory(e.target.value)}>
               <option value="">Automática</option>{data.categories.map(c => <option key={c}>{c}</option>)}</select>
             <label className="block"><input type="checkbox" checked={hidden} onChange={e => setHidden(e.target.checked)} /> Retirar de portada</label>
+            {!hidden && <fieldset className="space-y-2"><label><input type="checkbox" checked={pin} onChange={e => setPin(e.target.checked)} /> Destacar en portada</label>
+              {pin && <><label className="block">Destacar hasta (hora local)<input required type="datetime-local" className={input} value={until} onChange={e => setUntil(e.target.value)} /></label>
+                <label className="block">Bajada de portada (opcional)<textarea maxLength={300} className={input} value={intro} onChange={e => setIntro(e.target.value)} /></label>
+                <label className="block">URL de imagen de un proveedor admitido (opcional)<input type="url" className={input} value={image} onChange={e => setImage(e.target.value)} /></label></>}
+            </fieldset>}
             <div className="flex gap-4"><button disabled={busy} className={button}>Guardar cambios</button><button type="button" disabled={busy} onClick={() => setSelected(null)}>Cancelar</button></div>
           </form>}
           {matches.length === 0 && <p>No hay noticias que coincidan.</p>}
           <ul className="divide-y divide-zinc-800">{matches.slice(0, limit).map(a => <li key={a.id}>
             <button className="w-full py-3 text-left" disabled={busy} onClick={() => select(a)}>
-              <span className="block text-xs text-zinc-300">{a.sourceName} · {a.category} · {a.hidden ? 'Retirada' : 'Visible'}</span>{a.title}
+              <span className="block text-xs text-zinc-300">{a.sourceName} · {a.category} · {data.feature?.id === a.id ? 'Destacada' : a.hidden ? 'Retirada' : 'Visible'}</span>{a.title}
             </button></li>)}</ul>
           {matches.length > limit && <button onClick={() => setLimit(limit + 25)}>Mostrar más</button>}
         </section>

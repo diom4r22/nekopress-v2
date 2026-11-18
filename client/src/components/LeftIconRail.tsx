@@ -40,7 +40,7 @@ export const LeftIconRail: React.FC<LeftIconRailProps> = ({
   }> = [
     { id: 'news', label: 'Portada & Noticias', icon: Flame },
     { id: 'catalog', label: 'Catálogo Anime', icon: Film },
-    { id: 'schedule', label: 'Simulcast JST', icon: Calendar },
+    { id: 'schedule', label: 'Calendario de estrenos', icon: Calendar },
     { id: 'ranking', label: 'Ranking Oficial', icon: Trophy },
   ];
 

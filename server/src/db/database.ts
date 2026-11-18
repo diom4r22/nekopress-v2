@@ -396,3 +396,26 @@ export function saveEditorialOverride(id: string, category: NewsItem['category']
     ON CONFLICT(article_id) DO UPDATE SET category = excluded.category, hidden = excluded.hidden`)
     .run(id, category, Number(hidden));
 }
+
+db.exec(`CREATE TABLE IF NOT EXISTS featured_story (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1), id TEXT NOT NULL, until INTEGER NOT NULL,
+  intro TEXT NOT NULL, image TEXT NOT NULL
+)`);
+
+export interface Feature { id: string; until: number; intro: string; image: string }
+export function activeFeature(now = Date.now()) {
+  return db.prepare('SELECT id, until, intro, image FROM featured_story WHERE slot = 1 AND until > ?')
+    .get(now) as Feature | undefined;
+}
+
+export const saveEditorialChanges = db.transaction((
+  id: string, category: NewsItem['category'] | null, hidden: boolean, feature?: Feature | null
+) => {
+  saveEditorialOverride(id, category, hidden);
+  if (hidden || feature === null) {
+    db.prepare('DELETE FROM featured_story WHERE id = ?').run(id);
+  } else if (feature) {
+    db.prepare('INSERT OR REPLACE INTO featured_story (slot,id,until,intro,image) VALUES (1,?,?,?,?)')
+      .run(id, feature.until, feature.intro, feature.image);
+  }
+});

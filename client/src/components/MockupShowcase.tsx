@@ -88,15 +88,23 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
   onToggleBookmark,
   isLoading = false,
 }) => {
+  const [clock, setClock] = useState(Date.now);
+  const pin = filteredNews.find(n => n.featured && n.featured.until > Math.max(clock, Date.now()));
+  useEffect(() => {
+    if (!pin?.featured) return;
+    const timer = setTimeout(() => setClock(Date.now()), Math.min(2_147_483_647, Math.max(1, pin.featured.until - Date.now())));
+    return () => clearTimeout(timer);
+  }, [pin, clock]);
   // Priorizar notas con imagen verificada para la cabecera y tendencias
   const orderedNews = React.useMemo(() => {
-    const withImg = filteredNews.filter((n) => Boolean(n.imageUrl));
-    const withoutImg = filteredNews.filter((n) => !n.imageUrl);
-    return [...withImg, ...withoutImg];
-  }, [filteredNews]);
+    const rest = filteredNews.filter(n => n !== pin).sort((a,b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+    const withImg = rest.filter((n) => Boolean(n.imageUrl));
+    const withoutImg = rest.filter((n) => !n.imageUrl);
+    return [...(pin ? [pin] : []), ...withImg, ...withoutImg];
+  }, [filteredNews, pin]);
 
   const hero = orderedNews[0];
-  const heroIntro = hero && storyText(hero).intro;
+  const heroIntro = pin?.featured?.intro || (hero && storyText(hero).intro);
   const videos = filteredNews.filter(item => videoId(item.url)).slice(0, 4);
   const heroDock = orderedNews.slice(1, 5);
   const topFive = orderedNews.slice(5, 10);
@@ -112,7 +120,7 @@ export const MockupNewsLayout: React.FC<ShibuyaStreamLayoutProps> = ({
       <section className="relative w-full min-h-[500px] lg:min-h-[540px] bg-[#09090c] overflow-hidden flex flex-col justify-between">
         {hero && (
           <div className="absolute inset-0">
-            <VisualThumb item={hero} className="w-full h-full" />
+            <VisualThumb item={pin?.featured?.image ? { ...hero, imageUrl: pin.featured.image } : hero} className="w-full h-full" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#09090c] via-[#09090c]/60 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50" />
           </div>
