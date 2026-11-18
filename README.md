@@ -37,4 +37,8 @@ Los favoritos se guardan en el navegador y no se sincronizan entre dispositivos.
 
 La sincronización automática continúa en segundo plano. Para usar las rutas administrativas `/api/news/sync` o `/api/radar/ingest`, configura `ADMIN_API_TOKEN` en `server/.env` y envía `Authorization: Bearer <token>`. Sin token, esas rutas están desactivadas. El botón de actualizar consulta los datos disponibles.
 
-El proxy de imágenes solo acepta proveedores conocidos mediante HTTPS, limita el tamaño y no sigue redirecciones. Si una fuente nueva usa otro dominio, añádelo a la lista de proveedores en `server/src/services/imageProxy.ts` tras verificarlo.
+El proxy de imágenes solo acepta proveedores conocidos mediante HTTPS, limita el tamaño y solo sigue hasta dos redirecciones entre proveedores permitidos. Si una fuente nueva usa otro dominio, añádelo a la lista de proveedores en `server/src/services/imageProxy.ts` tras verificarlo.
+
+Abre `/admin` para revisar las fuentes y editar la categoría o la visibilidad de las noticias. Para entrar, usa el valor de `ADMIN_API_TOKEN` configurado en el servidor. Usa HTTPS en el despliegue. La clave solo permanece en memoria mientras el panel está abierto. Las decisiones editoriales se guardan en SQLite y puedes deshacerlas con la categoría «Automática» o volviendo a mostrar la noticia. Al retirar una noticia, su enlace directo sigue disponible.
+
+El piloto de Aniplex of America lee el feed público de su canal de YouTube y selecciona tráilers, teasers y anuncios. Su último intento de lectura aparece en el panel.

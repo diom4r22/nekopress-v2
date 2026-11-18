@@ -373,3 +373,26 @@ export function getCachedTranslation(sourceKey: string): { title: string; summar
 export function saveCachedTranslation(sourceKey: string, titleEs: string, summaryEs: string, model: string): void {
   saveTranslationStmt.run(sourceKey, titleEs, summaryEs, model, new Date().toISOString());
 }
+
+db.exec(`CREATE TABLE IF NOT EXISTS editorial_overrides (
+  article_id TEXT PRIMARY KEY,
+  category TEXT,
+  hidden INTEGER NOT NULL DEFAULT 0
+)`);
+
+export function editorialOverrides() {
+  const rows = db.prepare('SELECT article_id, category, hidden FROM editorial_overrides').all() as Array<{
+    article_id: string; category: NewsItem['category'] | null; hidden: number;
+  }>;
+  return new Map(rows.map(row => [row.article_id, row]));
+}
+
+export function saveEditorialOverride(id: string, category: NewsItem['category'] | null, hidden: boolean) {
+  if (!category && !hidden) {
+    db.prepare('DELETE FROM editorial_overrides WHERE article_id = ?').run(id);
+    return;
+  }
+  db.prepare(`INSERT INTO editorial_overrides (article_id, category, hidden) VALUES (?, ?, ?)
+    ON CONFLICT(article_id) DO UPDATE SET category = excluded.category, hidden = excluded.hidden`)
+    .run(id, category, Number(hidden));
+}

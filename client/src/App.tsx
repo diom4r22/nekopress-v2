@@ -149,39 +149,42 @@ export const App: React.FC = () => {
       .finally(() => setScheduleLoading(false));
   }, []);
 
+  const newsRequest = useRef<AbortController>();
+
   // Fetch news from backend
   const fetchNews = useCallback(async (isManual = false) => {
-    if (isManual) {
-      setIsSyncing(true);
-    }
+    if (newsRequest.current && !isManual) return;
+    newsRequest.current?.abort();
+    const controller = new AbortController();
+    newsRequest.current = controller;
+    if (isManual) setIsSyncing(true);
     try {
       const collected: NewsItem[] = [];
       let page = 1;
       let hasNext = true;
       while (hasNext) {
-        const response = await fetch(`/api/news?limit=50&page=${page}`);
+        const response = await fetch(`/api/news?limit=50&page=${page}`, { signal: controller.signal });
         if (!response.ok) throw new Error(`Error al cargar noticias: ${response.status}`);
         const json = await response.json();
         if (!Array.isArray(json.data)) throw new Error('Respuesta de noticias inválida');
         collected.push(...json.data);
+        if (controller.signal.aborted) return;
+        if (page === 1) {
+          setAllNews(previous => previous.length ? previous : json.data);
+          setIsLoading(false);
+        }
         hasNext = Boolean(json.pagination?.hasNext) && json.data.length > 0;
         page++;
       }
-      setAllNews(collected);
-      const match = window.location.pathname.match(/\/noticias\/([^/?#]+)/);
-      if (match && match[1]) {
-        const found = collected.find((n) => n.slug === match[1]);
-        if (found) setSelectedArticle(found);
-        else {
-          const response = await fetch(`/api/news/${encodeURIComponent(decodeURIComponent(match[1]))}`);
-          if (response.ok) setSelectedArticle((await response.json()).data);
-        }
-      }
+      setAllNews([...new Map(collected.map(item => [item.id, item])).values()]);
     } catch (err) {
-      console.error('Error al conectar con la API de noticias:', err);
+      if (!controller.signal.aborted) console.error('Error al conectar con la API de noticias:', err);
     } finally {
-      setIsLoading(false);
-      setIsSyncing(false);
+      if (newsRequest.current === controller) {
+        newsRequest.current = undefined;
+        setIsLoading(false);
+        setIsSyncing(false);
+      }
     }
   }, []);
 
@@ -193,7 +196,9 @@ export const App: React.FC = () => {
       fetchNews();
     }, 60000);
 
+    let articleRequest: AbortController | undefined;
     const handlePopState = () => {
+      articleRequest?.abort();
       const path = window.location.pathname;
 
       if (path.startsWith('/ranking')) {
@@ -225,16 +230,30 @@ export const App: React.FC = () => {
         const matchNews = path.match(/\/noticias\/([^/?#]+)/);
         if (matchNews && matchNews[1]) {
           const found = allNewsRef.current.find((n) => n.slug === matchNews[1]);
-          if (found) setSelectedArticle(found);
+          setSelectedArticle(found ?? null);
+          if (!found) {
+            articleRequest = new AbortController();
+            const signal = articleRequest.signal;
+            fetch(`/api/news/${matchNews[1]}`, { signal })
+              .then(response => response.ok ? response.json() : null)
+              .then(json => {
+                if (json?.data && !signal.aborted && window.location.pathname === path) setSelectedArticle(json.data);
+              })
+              .catch(() => {});
+          }
         } else {
           setSelectedArticle(null);
         }
       }
     };
 
+    handlePopState();
     window.addEventListener('popstate', handlePopState);
 
     return () => {
+      articleRequest?.abort();
+      newsRequest.current?.abort();
+      newsRequest.current = undefined;
       clearInterval(pollTimer);
       window.removeEventListener('popstate', handlePopState);
     };
@@ -487,7 +506,7 @@ export const App: React.FC = () => {
           </div>
 
           <div className="text-xs font-mono opacity-70">
-            <span>NekoPress v2.0 · Tokio 2026</span>
+            <span>NekoPress v2.0 · Tokio 2026</span> · <a className="hover:underline" href="/admin">Administración</a>
           </div>
         </div>
       </footer>

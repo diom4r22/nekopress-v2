@@ -8,6 +8,7 @@
  */
 
 import dotenv from 'dotenv';
+import { classifyNews, hasRadarContext } from './editorial.js';
 import { NewsCategory } from '../types.js';
 import { getCachedTranslation, saveCachedTranslation } from '../db/database.js';
 
@@ -43,6 +44,7 @@ POLÍTICA DE FILTRADO ESTRICTO:
 - DESCARTAR (100% de exclusión, debe retornar {"shouldPublish": false}):
   * Memes, chistes, humor o shitposting.
   * Opiniones personales, reseñas subjetivas, quejas o rankings de fans.
+  * Fragmentos sin contexto o sin identificar la obra y el hecho anunciado.
   * Fotos de cosplay de fans no oficiales o fanarts.
   * Enlaces de afiliados a tiendas de figuras o merchandising sin anuncio editorial relevante.
   * Sorteos, peticiones de retuits o preguntas triviales a la comunidad ("¿cuál prefieres?").
@@ -58,11 +60,7 @@ REGLAS DE REDACCIÓN EDITORIAL (ARTÍCULO COMPLETO):
 1. Idioma: Español neutro periodístico, formal y conciso (estilo cable de agencia EFE/Reuters).
 2. Titular (title): Máximo 95 caracteres. Claro, directo, sin signos innecesarios ni clickbait.
 3. Entradilla / Bajada (lead): 1 a 2 oraciones densas en información (140 a 220 caracteres) resumiendo el hecho noticioso clave.
-4. Artículo Completo (content): Redacta una crónica periodística de fondo en 3 a 5 párrafos estructurados:
-   - Párrafo 1: El hecho noticioso principal (anuncio, teaser, fecha, evento o revelación oficial).
-   - Párrafo 2: Antecedentes de la franquicia y contexto de la historia (autor original, temporadas previas, arcos).
-   - Párrafo 3: Producción técnica (estudio de animación, directores clave, staff, seiyuus, distribuidora internacional o plataforma).
-   - Párrafo 4: Relevancia y próximos pasos (calendario de estrenos, siguientes trailers o repercusión en la industria).
+4. Artículo completo (content): Resume los hechos presentes en la publicación. No inventes antecedentes, citas, créditos de producción ni próximos pasos. Si hay pocos hechos, escribe un solo párrafo.
 5. Resumen (summary): 2 a 3 oraciones concisas para la tarjeta en cuadrícula (160-240 caracteres).
 6. Categorización: Asignar una categoría estricta de la lista: ['Anime', 'Manga', 'Películas', 'Streaming', 'Videojuegos', 'Industria'].
 7. Etiquetas (tags): 3 a 5 tags normalizados sin numeral (ej: ["ChainsawMan", "MAPPA", "Teaser", "Estreno2025"]).
@@ -188,7 +186,7 @@ export class GeminiCurator {
   async curate(tweet: RawTweetCandidate): Promise<CuratedDispatch> {
     this.refreshApiKey();
 
-    const cacheKey = `${tweet.authorHandle}:${tweet.text.slice(0, 100)}`;
+    const cacheKey = `${tweet.authorHandle}:${tweet.text}`;
     if (this.curationCache.has(cacheKey)) {
       return this.curationCache.get(cacheKey)!;
     }
@@ -439,10 +437,10 @@ Determina con rigor editorial si debe publicarse como primicia de NekoPress v2. 
     }
 
     // En modo heurístico exigimos coincidencia estricta con patrones de noticia oficial
-    if (!isOfficialMatch) {
+    if (!isOfficialMatch || !hasRadarContext(cleanText)) {
       return {
         shouldPublish: false,
-        rejectionReason: 'Tweet sin medios adjuntos ni patrones de primicia confirmada.',
+        rejectionReason: 'Publicación sin contexto suficiente para un despacho o sin señales de anuncio.',
         title: '',
         lead: '',
         content: '',
@@ -457,29 +455,15 @@ Determina con rigor editorial si debe publicarse como primicia de NekoPress v2. 
 
     // 3. Extract formal title and summary heuristics
     const firstLine = cleanText.split('\n')[0].trim();
-    let title = firstLine.length > 10 ? firstLine : cleanText;
-    if (title.length > 90) {
-      const cut = title.slice(0, 87);
-      const lastSpace = cut.lastIndexOf(' ');
-      title = (lastSpace > 50 ? cut.slice(0, lastSpace) : cut) + '…';
-    }
-
-    title = formatRadarHeadline(title);
+    const title = formatRadarHeadline(hasRadarContext(firstLine) ? firstLine : cleanText);
 
     const summary = cleanText.length > 280
       ? cleanText.slice(0, 275) + '…'
       : cleanText || 'Despacho urgente captado en tiempo real por el Radar X de NekoPress.';
 
     const lead = summary;
-    const content = `El reporte oficial proviene del canal especializado ${tweet.authorName} (${tweet.authorHandle}), referente técnico en la cobertura y verificación de primicias de la industria del anime y manga en Japón.\n\nLos detalles de producción, el elenco de voces principal y las ventanas definitivas de emisión en cadenas televisivas y plataformas autorizadas serán ampliados conforme los comités de producción en Tokio emitan sus comunicados correspondientes.`;
-
-    // Infer category
-    let category: NewsCategory = 'Anime';
-    const lower = cleanText.toLowerCase();
-    if (/manga|shonen jump|capítulo|tomo|volumen/.test(lower)) category = 'Manga';
-    else if (/movie|película|film|cine/.test(lower)) category = 'Películas';
-    else if (/streaming|crunchyroll|netflix|disney\+/.test(lower)) category = 'Streaming';
-    else if (/staff|director|estudio|producción|seiyuu|box office/.test(lower)) category = 'Industria';
+    const content = cleanText;
+    const category = classifyNews(firstLine, cleanText);
 
     // Extract tags
     const tags = ['RadarX', tweet.authorHandle.replace('@', '')];
