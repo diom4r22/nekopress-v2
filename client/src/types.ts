@@ -1,4 +1,5 @@
 export interface NewsItem {
+  animeOverrideId?: number | null;
   featured?: { until: number; intro: string; image?: string };
   id: string;
   title: string;

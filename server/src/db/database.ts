@@ -408,10 +408,25 @@ export function activeFeature(now = Date.now()) {
     .get(now) as Feature | undefined;
 }
 
+db.exec(`CREATE TABLE IF NOT EXISTS article_anime_links (
+  article_id TEXT PRIMARY KEY, anime_id INTEGER NOT NULL CHECK(anime_id >= 0)
+)`);
+
+export function articleAnimeLinks() {
+  const rows = db.prepare('SELECT article_id, anime_id FROM article_anime_links').all() as Array<{ article_id: string; anime_id: number }>;
+  return new Map(rows.map(row => [row.article_id, row.anime_id]));
+}
+
 export const saveEditorialChanges = db.transaction((
-  id: string, category: NewsItem['category'] | null, hidden: boolean, feature?: Feature | null
+  id: string, category: NewsItem['category'] | null, hidden: boolean, feature?: Feature | null, animeOverrideId?: number | null
 ) => {
   saveEditorialOverride(id, category, hidden);
+  // Missing field preserves an existing choice. Null restores matching and zero disables it.
+  if (animeOverrideId === null) {
+    db.prepare('DELETE FROM article_anime_links WHERE article_id = ?').run(id);
+  } else if (animeOverrideId !== undefined) {
+    db.prepare('INSERT OR REPLACE INTO article_anime_links (article_id, anime_id) VALUES (?, ?)').run(id, animeOverrideId);
+  }
   if (hidden || feature === null) {
     db.prepare('DELETE FROM featured_story WHERE id = ?').run(id);
   } else if (feature) {
