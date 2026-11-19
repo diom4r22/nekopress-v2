@@ -42,3 +42,31 @@ El proxy de imágenes solo acepta proveedores conocidos mediante HTTPS, limita e
 Abre `/admin` para revisar las fuentes y editar la categoría o la visibilidad de las noticias. Para entrar, usa el valor de `ADMIN_API_TOKEN` configurado en el servidor. Usa HTTPS en el despliegue. La clave solo permanece en memoria mientras el panel está abierto. Las decisiones editoriales se guardan en SQLite y puedes deshacerlas con la categoría «Automática» o volviendo a mostrar la noticia. Al retirar una noticia, su enlace directo sigue disponible.
 
 El piloto de Aniplex of America lee el feed público de su canal de YouTube y selecciona tráilers, teasers y anuncios. Su último intento de lectura aparece en el panel.
+
+## Biblioteca de manga y anime
+
+Abre **Biblioteca** desde la barra lateral o visita `/biblioteca`. En **Leer manga** puedes seleccionar varias imágenes de un capítulo. En **Ver anime** puedes seleccionar un MP4 o WebM compatible con tu navegador. Los archivos que elijas en tu dispositivo se abren localmente. El navegador recuerda la página o el punto de reproducción.
+
+Para compartir una colección con tus amigos:
+
+1. Configura una clave independiente en `BIBLIOTECA_CLAVE` en `server/.env` y reinicia el servidor.
+2. Organiza los archivos en el equipo que ejecuta NekoPress con esta estructura:
+
+   ```text
+   server/biblioteca/
+     manga/
+       Nombre del manga/
+         Capítulo 1/
+           1.jpg
+           2.jpg
+           10.jpg
+     anime/
+       Nombre de la serie/
+         Episodio 1.mp4
+         Episodio 2.webm
+   ```
+
+3. Actualiza `/biblioteca`. Las carpetas y páginas se ordenan por nombre y número. El lector admite JPG, PNG, WebP y AVIF. Si tienes un CBZ, extrae las imágenes en la carpeta del capítulo.
+4. Tus amigos pueden entrar con la clave desde una dirección de NekoPress accesible para ellos. Para un despliegue en internet usa HTTPS. En producción, la cookie de sesión requiere HTTPS.
+
+La colección compartida está desactivada mientras la clave esté vacía. Los archivos multimedia de esa carpeta quedan fuera de Git. La sesión dura hasta siete días y termina también al reiniciar el servidor. El progreso de lectura y reproducción se guarda en cada navegador.

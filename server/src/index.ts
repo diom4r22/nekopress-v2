@@ -10,6 +10,7 @@ import { animeLiveService } from './services/animeLiveService.js';
 import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
 import { allowedUrl, handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
+import { libraryRouter } from './services/mediaLibrary.js';
 import { classifyNews } from './services/editorial.js';
 import { activeFeature, articleAnimeLinks, editorialOverrides, saveEditorialChanges } from './db/database.js';
 import { NewsItem } from './types.js';
@@ -34,6 +35,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const ingestor = new FeedIngestor();
+
+app.use('/api/biblioteca', libraryRouter(process.env.BIBLIOTECA_CLAVE));
 
 app.use(cors({ origin: '*' }));
 app.use(express.json());

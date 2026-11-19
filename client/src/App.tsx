@@ -507,6 +507,8 @@ export const App: React.FC = () => {
               Noticias
             </button>
             <span>·</span>
+            <a href="/biblioteca" className="hover:text-red-500">Biblioteca</a>
+            <span>·</span>
             <button onClick={() => handleSectionChange('catalog')} className="hover:text-red-500 cursor-pointer">
               Catálogo
             </button>
