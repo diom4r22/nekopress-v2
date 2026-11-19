@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Library,
   Flame,
   Film,
   Calendar,
@@ -93,6 +94,10 @@ export const LeftIconRail: React.FC<LeftIconRailProps> = ({
           );
         })}
 
+        <a href="/biblioteca" aria-label="Biblioteca de manga y anime" title="Biblioteca de manga y anime"
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-white/10">
+          <Library className="h-5 w-5" />
+        </a>
         <button
           type="button"
           onClick={onOpenSaved}
