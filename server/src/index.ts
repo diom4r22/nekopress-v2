@@ -10,6 +10,7 @@ import { animeLiveService } from './services/animeLiveService.js';
 import { xRadarIngestor } from './services/xRadarIngestor.js';
 import { geminiCurator } from './services/geminiCurator.js';
 import { allowedUrl, handleImageProxy, unwrapImageUrl } from './services/imageProxy.js';
+import { onlineCatalog } from './services/onlineCatalog.js';
 import { libraryRouter } from './services/mediaLibrary.js';
 import { classifyNews } from './services/editorial.js';
 import { activeFeature, articleAnimeLinks, editorialOverrides, saveEditorialChanges } from './db/database.js';
@@ -36,6 +37,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const ingestor = new FeedIngestor();
 
+app.use('/api/catalogo-online', onlineCatalog);
 app.use('/api/biblioteca', libraryRouter(process.env.BIBLIOTECA_CLAVE));
 
 app.use(cors({ origin: '*' }));

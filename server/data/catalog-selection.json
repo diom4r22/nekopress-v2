@@ -1,0 +1,480 @@
+{
+  "manga": {
+    "next": true,
+    "items": [
+      {
+        "id": "32d76d19-8a05-4db0-9fc2-e0b0648fe9d0",
+        "title": "Solo Leveling",
+        "image": "https://uploads.mangadex.org/covers/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0/e90bdc47-c8b9-4df7-b2c0-17641b645ee1.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Aventura",
+          "Drama",
+          "Fantasía"
+        ],
+        "year": 2018,
+        "original": "https://mangadex.org/title/32d76d19-8a05-4db0-9fc2-e0b0648fe9d0",
+        "links": []
+      },
+      {
+        "id": "77bee52c-d2d6-44ad-a33a-1734c1fe696a",
+        "title": "La Eminencia en las Sombras",
+        "image": "https://uploads.mangadex.org/covers/77bee52c-d2d6-44ad-a33a-1734c1fe696a/6079dd31-838b-4d61-87c4-121f3ad19158.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Comedia",
+          "Isekai",
+          "Drama",
+          "Fantasía"
+        ],
+        "year": 2018,
+        "original": "https://mangadex.org/title/77bee52c-d2d6-44ad-a33a-1734c1fe696a",
+        "links": []
+      },
+      {
+        "id": "e78a489b-6632-4d61-b00b-5206f5b8b22b",
+        "title": "Aquella Vez que me Convertí en Slime",
+        "image": "https://uploads.mangadex.org/covers/e78a489b-6632-4d61-b00b-5206f5b8b22b/420ec3c0-2dab-47f2-8f9e-a9e0c3faf16d.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Comedia",
+          "Isekai",
+          "Fantasía"
+        ],
+        "year": 2015,
+        "original": "https://mangadex.org/title/e78a489b-6632-4d61-b00b-5206f5b8b22b",
+        "links": []
+      },
+      {
+        "id": "b0b721ff-c388-4486-aa0f-c2b0bb321512",
+        "title": "Frieren: Más allá del final",
+        "image": "https://uploads.mangadex.org/covers/b0b721ff-c388-4486-aa0f-c2b0bb321512/b9a049b0-186b-4714-a83e-bb965458914a.jpg.256.jpg",
+        "genres": [
+          "Aventura",
+          "Drama",
+          "Fantasía",
+          "Vida cotidiana"
+        ],
+        "year": 2020,
+        "original": "https://mangadex.org/title/b0b721ff-c388-4486-aa0f-c2b0bb321512",
+        "links": []
+      },
+      {
+        "id": "a96676e5-8ae2-425e-b549-7f15dd34a6d8",
+        "title": "Komi-san no puede comunicarse",
+        "image": "https://uploads.mangadex.org/covers/a96676e5-8ae2-425e-b549-7f15dd34a6d8/f8f44329-1dd7-4301-9ec7-a4a76182e8eb.jpg.256.jpg",
+        "genres": [
+          "Romance",
+          "Comedia",
+          "Vida cotidiana"
+        ],
+        "year": 2016,
+        "original": "https://mangadex.org/title/a96676e5-8ae2-425e-b549-7f15dd34a6d8",
+        "links": []
+      },
+      {
+        "id": "eb2d1a45-d4e7-4e32-a171-b5b029c5b0cb",
+        "title": "Soy una araña, ¿y qué?",
+        "image": "https://uploads.mangadex.org/covers/eb2d1a45-d4e7-4e32-a171-b5b029c5b0cb/4ac61d4b-77d6-4946-b24f-0935eafa0305.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Comedia",
+          "Aventura",
+          "Isekai",
+          "Drama",
+          "Fantasía"
+        ],
+        "year": 2015,
+        "original": "https://mangadex.org/title/eb2d1a45-d4e7-4e32-a171-b5b029c5b0cb",
+        "links": []
+      },
+      {
+        "id": "9d3d3403-1a87-4737-9803-bc3d99db1424",
+        "title": "El Chico Que Me Gusta No Es Un Chico",
+        "image": "https://uploads.mangadex.org/covers/9d3d3403-1a87-4737-9803-bc3d99db1424/fac191d0-96c1-4ebb-bf79-b7616d7162ac.jpg.256.jpg",
+        "genres": [
+          "Romance",
+          "Girls' Love",
+          "Vida cotidiana"
+        ],
+        "year": 2022,
+        "original": "https://mangadex.org/title/9d3d3403-1a87-4737-9803-bc3d99db1424",
+        "links": []
+      },
+      {
+        "id": "d7037b2a-874a-4360-8a7b-07f2899152fd",
+        "title": "Iruma-kun en el instituto demoníaco",
+        "image": "https://uploads.mangadex.org/covers/d7037b2a-874a-4360-8a7b-07f2899152fd/59ab55ed-a537-426e-b755-6337740df580.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Romance",
+          "Comedia",
+          "Isekai",
+          "Fantasía"
+        ],
+        "year": 2017,
+        "original": "https://mangadex.org/title/d7037b2a-874a-4360-8a7b-07f2899152fd",
+        "links": []
+      },
+      {
+        "id": "6670ee28-f26d-4b61-b49c-d71149cd5a6e",
+        "title": "Mieruko-chan",
+        "image": "https://uploads.mangadex.org/covers/6670ee28-f26d-4b61-b49c-d71149cd5a6e/3efd58ff-2ad3-4cc1-9ac7-a5d5bbdc4389.jpg.256.jpg",
+        "genres": [
+          "Suspenso",
+          "Psicológico",
+          "Comedia",
+          "Drama",
+          "Terror",
+          "Vida cotidiana",
+          "Misterio",
+          "Tragedy"
+        ],
+        "year": 2018,
+        "original": "https://mangadex.org/title/6670ee28-f26d-4b61-b49c-d71149cd5a6e",
+        "links": []
+      },
+      {
+        "id": "418791c0-35cf-4f87-936b-acd9cddf0989",
+        "title": "La nobleza de las flores",
+        "image": "https://uploads.mangadex.org/covers/418791c0-35cf-4f87-936b-acd9cddf0989/6e823d0e-103a-4cf9-a312-a3a292ccb12d.jpg.256.jpg",
+        "genres": [
+          "Romance",
+          "Comedia",
+          "Drama",
+          "Vida cotidiana"
+        ],
+        "year": 2021,
+        "original": "https://mangadex.org/title/418791c0-35cf-4f87-936b-acd9cddf0989",
+        "links": []
+      },
+      {
+        "id": "55ace2fb-e157-4d76-9e72-67c6bd762a39",
+        "title": "Soy un rey demonio y he tomado como esposa a una elfa esclava, ¿cómo puedo amarla?",
+        "image": "https://uploads.mangadex.org/covers/55ace2fb-e157-4d76-9e72-67c6bd762a39/85a6f053-0cfe-47db-b57b-58034124afb7.jpg.256.jpg",
+        "genres": [
+          "Acción",
+          "Romance",
+          "Comedia",
+          "Drama",
+          "Fantasía"
+        ],
+        "year": 2018,
+        "original": "https://mangadex.org/title/55ace2fb-e157-4d76-9e72-67c6bd762a39",
+        "links": []
+      },
+      {
+        "id": "1fc3d326-c037-43fa-8953-ed52a56caa18",
+        "title": "Probablemente Tambien va tras mi Hermano",
+        "image": "https://uploads.mangadex.org/covers/1fc3d326-c037-43fa-8953-ed52a56caa18/e71fb7db-92f6-4316-87dd-3f523db91bca.jpg.256.jpg",
+        "genres": [
+          "Romance",
+          "Comedia",
+          "Vida cotidiana"
+        ],
+        "year": 2025,
+        "original": "https://mangadex.org/title/1fc3d326-c037-43fa-8953-ed52a56caa18",
+        "links": []
+      }
+    ]
+  },
+  "anime": {
+    "items": [
+      {
+        "id": "7442",
+        "title": "Attack on Titan",
+        "image": "https://media.kitsu.app/anime/poster_images/7442/medium.jpg",
+        "genres": [
+          "Acción",
+          "Aventura",
+          "Fantasía",
+          "Terror",
+          "Drama"
+        ],
+        "year": 2013,
+        "original": "https://kitsu.app/anime/attack-on-titan",
+        "links": [
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/attack-on-titan"
+          },
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/70299043"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/attack-on-titan"
+          }
+        ]
+      },
+      {
+        "id": "11469",
+        "title": "My Hero Academia",
+        "image": "https://media.kitsu.app/anime/poster_images/11469/medium.jpg",
+        "genres": [
+          "Acción",
+          "Comedia"
+        ],
+        "year": 2016,
+        "original": "https://kitsu.app/anime/boku-no-hero-academia",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80135674"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/my-hero-academia"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/my-hero-academia"
+          }
+        ]
+      },
+      {
+        "id": "12268",
+        "title": "My Hero Academia Season 2",
+        "image": "https://media.kitsu.app/anime/poster_images/12268/medium.jpg",
+        "genres": [
+          "Comedia",
+          "Acción"
+        ],
+        "year": 2017,
+        "original": "https://kitsu.app/anime/boku-no-hero-academia-2nd-season",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80135674"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/my-hero-academia"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/my-hero-academia"
+          }
+        ]
+      },
+      {
+        "id": "10740",
+        "title": "One Punch Man",
+        "image": "https://media.kitsu.app/anime/poster_images/10740/medium.jpg",
+        "genres": [
+          "Acción",
+          "Comedia",
+          "Sobrenatural"
+        ],
+        "year": 2015,
+        "original": "https://kitsu.app/anime/one-punch-man",
+        "links": [
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/onepunch-man"
+          },
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80117291"
+          },
+          {
+            "label": "TubiTV",
+            "url": "https://tubitv.com/series/3854/one_punch_man"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "https://www.crunchyroll.com/en-gb/one-punch-man"
+          }
+        ]
+      },
+      {
+        "id": "13881",
+        "title": "My Hero Academia Season 3",
+        "image": "https://media.kitsu.app/anime/poster_images/13881/medium.jpg",
+        "genres": [
+          "Acción",
+          "Comedia"
+        ],
+        "year": 2018,
+        "original": "https://kitsu.app/anime/boku-no-hero-academia-3rd-season",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80135674"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/my-hero-academia"
+          }
+        ]
+      },
+      {
+        "id": "1376",
+        "title": "Death Note",
+        "image": "https://media.kitsu.app/anime/poster_images/1376/medium.jpg",
+        "genres": [
+          "Suspenso",
+          "Psicológico",
+          "Misterio",
+          "Sobrenatural",
+          "Drama"
+        ],
+        "year": 2006,
+        "original": "https://kitsu.app/anime/death-note",
+        "links": [
+          {
+            "label": "YouTube",
+            "url": "https://www.youtube.com/watch?v=md6w9avVWIs&list=PLDDFkfLheQ9hzlWtnCSla1DicLZkllriY"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/death-note"
+          },
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/70204970"
+          },
+          {
+            "label": "TubiTV",
+            "url": "http://tubitv.com/series/1630"
+          }
+        ]
+      },
+      {
+        "id": "3936",
+        "title": "Fullmetal Alchemist: Brotherhood",
+        "image": "https://media.kitsu.app/anime/poster_images/3936/medium.jpg",
+        "genres": [
+          "Fantasía",
+          "Aventura",
+          "Acción"
+        ],
+        "year": 2009,
+        "original": "https://kitsu.app/anime/fullmetal-alchemist-brotherhood",
+        "links": [
+          {
+            "label": "Amazon",
+            "url": "https://www.amazon.com/dp/B002T8C202/"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/fullmetal-alchemist-brotherhood"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/fullmetal-alchemist-brotherhood"
+          },
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/70204981"
+          }
+        ]
+      },
+      {
+        "id": "11614",
+        "title": "Your Name.",
+        "image": "https://media.kitsu.app/anime/poster_images/11614/medium.jpg",
+        "genres": [
+          "Romance",
+          "Drama",
+          "Sobrenatural"
+        ],
+        "year": 2016,
+        "original": "https://kitsu.app/anime/kimi-no-na-wa",
+        "links": []
+      },
+      {
+        "id": "6448",
+        "title": "Hunter x Hunter (2011)",
+        "image": "https://media.kitsu.app/anime/poster_images/6448/medium.jpg",
+        "genres": [
+          "Aventura",
+          "Acción",
+          "Drama"
+        ],
+        "year": 2011,
+        "original": "https://kitsu.app/anime/hunter-x-hunter-2011",
+        "links": [
+          {
+            "label": "YouTube",
+            "url": "https://www.youtube.com/watch?v=7zOI5o7tabA&list=PLDDFkfLheQ9izDhrHzKo4gdKwHRQGYbhn"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "http://www.crunchyroll.com/hunter-x-hunter"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/hunter-x-hunter"
+          }
+        ]
+      },
+      {
+        "id": "41370",
+        "title": "Demon Slayer: Kimetsu no Yaiba",
+        "image": "https://media.kitsu.app/anime/poster_images/41370/medium.jpg",
+        "genres": [
+          "Aventura",
+          "Acción",
+          "Histórico",
+          "Fantasía",
+          "Sobrenatural"
+        ],
+        "year": 2019,
+        "original": "https://kitsu.app/anime/kimetsu-no-yaiba",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/watch/81091413"
+          },
+          {
+            "label": "Crunchyroll",
+            "url": "https://www.crunchyroll.com/demon-slayer-kimetsu-no-yaiba"
+          },
+          {
+            "label": "Hulu",
+            "url": "https://www.hulu.com/demon-slayer-kimetsu-no-yaiba"
+          }
+        ]
+      },
+      {
+        "id": "8699",
+        "title": "The Seven Deadly Sins",
+        "image": "https://media.kitsu.app/anime/poster_images/8699/medium.jpg",
+        "genres": [
+          "Acción",
+          "Fantasía",
+          "Aventura",
+          "Comedia"
+        ],
+        "year": 2014,
+        "original": "https://kitsu.app/anime/nanatsu-no-taizai",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80050063"
+          }
+        ]
+      },
+      {
+        "id": "10028",
+        "title": "A Silent Voice",
+        "image": "https://media.kitsu.app/anime/poster_images/10028/medium.jpg",
+        "genres": [
+          "Drama",
+          "Romance"
+        ],
+        "year": 2016,
+        "original": "https://kitsu.app/anime/koe-no-katachi",
+        "links": [
+          {
+            "label": "Netflix",
+            "url": "https://www.netflix.com/title/80223226"
+          }
+        ]
+      }
+    ],
+    "next": true
+  }
+}
