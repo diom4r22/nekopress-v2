@@ -45,11 +45,12 @@ El piloto de Aniplex of America lee el feed público de su canal de YouTube y se
 
 ## Biblioteca de manga y anime
 
-La biblioteca incluye un catálogo en línea de anime de Kitsu y manga de MangaDex. Se puede buscar por título, filtrar por género y ordenar por popularidad o valoración. Las fichas de anime enlazan a las plataformas que registra Kitsu. Las fichas de manga consultan los capítulos en español, español latino o inglés. Los capítulos alojados en MangaDex se abren en el lector, y los capítulos que publica otra plataforma llevan a su enlace de lectura.
+Abre **Biblioteca** desde la barra lateral o visita `/biblioteca`. Las pestañas **Ver anime** y **Leer manga** permiten elegir una fuente y buscar por título.
 
-El catálogo en línea es público e independiente de la colección privada. Las consultas se guardan diez minutos en memoria. Si una API falla, la primera página popular puede mostrar una selección de fichas incluida en el repositorio. Leer capítulos en línea y consultar plataformas requiere conexión.
+- **Anime en NekoPress.** En TíoAnime, abre una serie y selecciona el episodio. En JKAnime, escribe el número y pulsa **Ver episodio aquí**. Si un reproductor falla, puedes elegir otro en **Servidor** cuando la fuente publique varias opciones. Kitsu permite buscar el título en TíoAnime y consultar las plataformas de su ficha. La pestaña también incluye un enlace al directorio de AnimeLatinoHD.
+- **Manga en NekoPress.** InManga ofrece capítulos en español. En MangaDex puedes elegir español, español latino o inglés y ver qué grupo tradujo cada capítulo si la fuente lo indica. Los capítulos alojados en ambas fuentes se abren en el lector, que recuerda la última página en ese navegador. Los capítulos externos de MangaDex indican su enlace de lectura. Olympus Scanlation permite explorar su catálogo y buscar una edición de la misma obra en InManga.
 
-Abre **Biblioteca** desde la barra lateral o visita `/biblioteca`. En **Leer manga** puedes seleccionar varias imágenes de un capítulo. En **Ver anime** puedes seleccionar un MP4 o WebM compatible con tu navegador. Los archivos que elijas en tu dispositivo se abren localmente. El navegador recuerda la página o el punto de reproducción.
+El catálogo en línea es público. La lectura y la reproducción dependen de la disponibilidad de cada capítulo o episodio en su fuente. Para abrir archivos de tu equipo, selecciona varias imágenes en **Leer manga** o un MP4 o WebM en **Ver anime**. El navegador recuerda la página o el punto de reproducción de tus archivos.
 
 Para compartir una colección con tus amigos:
 
