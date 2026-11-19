@@ -45,6 +45,10 @@ El piloto de Aniplex of America lee el feed público de su canal de YouTube y se
 
 ## Biblioteca de manga y anime
 
+La biblioteca incluye un catálogo en línea de anime de Kitsu y manga de MangaDex. Se puede buscar por título, filtrar por género y ordenar por popularidad o valoración. Las fichas de anime enlazan a las plataformas que registra Kitsu. Las fichas de manga consultan los capítulos en español, español latino o inglés. Los capítulos alojados en MangaDex se abren en el lector, y los capítulos que publica otra plataforma llevan a su enlace de lectura.
+
+El catálogo en línea es público e independiente de la colección privada. Las consultas se guardan diez minutos en memoria. Si una API falla, la primera página popular puede mostrar una selección de fichas incluida en el repositorio. Leer capítulos en línea y consultar plataformas requiere conexión.
+
 Abre **Biblioteca** desde la barra lateral o visita `/biblioteca`. En **Leer manga** puedes seleccionar varias imágenes de un capítulo. En **Ver anime** puedes seleccionar un MP4 o WebM compatible con tu navegador. Los archivos que elijas en tu dispositivo se abren localmente. El navegador recuerda la página o el punto de reproducción.
 
 Para compartir una colección con tus amigos:

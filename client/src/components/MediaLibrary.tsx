@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { MangaReader, readPosition, savePosition } from './MangaReader.js';
+import { OnlineCatalog } from './OnlineCatalog.js';
 import { BookOpen, Clapperboard, ArrowLeft } from 'lucide-react';
 
 type Kind = 'manga' | 'anime';
@@ -11,32 +13,6 @@ const display = (name: string, kind: Kind) => kind === 'anime' ? name.replace(/\
 const button = 'inline-flex min-h-10 items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-40';
 const panel = 'space-y-4 rounded-xl border border-white/15 bg-zinc-900 p-5';
 const progressKey = (parts: string[]) => 'nekopress.media.' + JSON.stringify(parts);
-
-function readPosition(key: string) {
-  try { const n = Number(localStorage.getItem(key)); return Number.isFinite(n) && n >= 0 ? n : 0; } catch { return 0; }
-}
-function savePosition(key: string, n: number) {
-  try { localStorage.setItem(key, String(n)); } catch { /* Private browsing can disable storage. */ }
-}
-
-function Reader({ pages, storageKey }: { pages: string[]; storageKey: string }) {
-  const [index, setIndex] = useState(() => Math.min(Math.floor(readPosition(storageKey)), pages.length - 1));
-  const [failed, setFailed] = useState(false);
-  function go(next: number) {
-    setIndex(next); setFailed(false); savePosition(storageKey, next);
-  }
-  if (!pages.length) return <p>Este capítulo todavía no tiene páginas.</p>;
-  return <div className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <button className={button} disabled={index <= 0} onClick={() => go(index - 1)}>Anterior</button>
-      <label className="text-sm">Página <select aria-label="Página" className="rounded bg-zinc-800 p-1" value={index} onChange={e => go(Number(e.target.value))}>
-        {pages.map((url, i) => <option key={url} value={i}>{i + 1}</option>)}</select> de {pages.length}</label>
-      <button className={button} disabled={index >= pages.length - 1} onClick={() => go(index + 1)}>Siguiente</button>
-    </div>
-    {failed ? <p role="alert">No se pudo abrir esta página.</p> :
-      <img className="mx-auto max-h-[82vh] max-w-full object-contain" src={pages[index]} alt={'Página ' + (index + 1)} onError={() => setFailed(true)} />}
-  </div>;
-}
 
 function Player({ url, storageKey }: { url: string; storageKey: string }) {
   const [failed, setFailed] = useState(false);
@@ -81,7 +57,7 @@ function LocalFiles({ kind }: { kind: Kind }) {
         setUrls([]); setFiles(selected.filter(f => valid.test(f.name)).sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true })));
       }} />
     {error && <p role="alert">{error}</p>}
-    {!!urls.length && (manga ? <Reader key={key} pages={urls} storageKey={key} /> : <Player key={key} url={urls[0]} storageKey={key} />)}
+    {!!urls.length && (manga ? <MangaReader key={key} pages={urls} storageKey={key} /> : <Player key={key} url={urls[0]} storageKey={key} />)}
   </details>;
 }
 
@@ -98,7 +74,7 @@ function Chapter({ series, item }: { series: string; item: string }) {
     return () => controller.abort();
   }, [series, item]);
   if (!pages) return <p role="status">{error || 'Cargando páginas…'}</p>;
-  return <Reader pages={pages} storageKey={progressKey(['manga', series, item])} />;
+  return <MangaReader pages={pages} storageKey={progressKey(['manga', series, item])} />;
 }
 
 export function MediaLibrary() {
@@ -138,6 +114,7 @@ export function MediaLibrary() {
         return <a href={link(tab)} key={tab} aria-current={tab === kind ? 'page' : undefined}
           className={button + (tab === kind ? ' bg-red-700' : '')}><Icon size={17} className="mr-2" />{tab === 'manga' ? 'Leer manga' : 'Ver anime'}</a>;
       })}</nav>
+      {!series && !item && <OnlineCatalog key={kind} kind={kind} />}
       {message && <p role="alert">{message}</p>}
       {!catalog ? status === 'locked' ? <form className={panel} onSubmit={async e => {
         e.preventDefault(); setBusy(true); setMessage('');
