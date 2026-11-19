@@ -1,4 +1,7 @@
 import express from 'express';
+import { catalogCache } from './catalogCache.js';
+import { regionalCatalog, regionalKinds, regionalReleases, validReleaseId, type Regional } from './regionalCatalog.js';
+import { regionalPlayback } from './regionalPlayback.js';
 import { readFileSync } from 'node:fs';
 
 const genres = {
@@ -9,8 +12,9 @@ const genres = {
 } as const;
 type Genre = keyof typeof genres;
 type Kind = 'anime' | 'manga';
-type Link = { label: string; url: string; chapterId?: string };
-interface Work {
+export type Link = { label: string; url: string; chapterId?: string; episode?: number; groups?: { name: string; url: string }[] };
+export interface Work {
+  info?: string; searchTitle?: string;
   id: string; title: string; image: string; genres: string[]; year?: number; original: string; links: Link[];
 }
 interface Page { items: Work[]; next: boolean }
@@ -42,23 +46,7 @@ const translate = (name: string) => genres[name.toLowerCase() as Genre]?.[0] || 
 const limit = 12;
 const chapterLimit = 30;
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-const cache = new Map<string, { data: Page | Chapters; until: number }>();
-const pending = new Map<string, Promise<Page | Chapters>>();
-
-async function cached(key: string, load: () => Promise<Page | Chapters>) {
-  const hit = cache.get(key);
-  if (hit && hit.until > Date.now()) return hit.data;
-  const existing = pending.get(key);
-  if (existing) return existing;
-  const request = load().then(data => {
-    cache.delete(key);
-    if (cache.size >= 150) cache.delete(cache.keys().next().value!);
-    cache.set(key, { data, until: Date.now() + 10 * 60000 });
-    return data;
-  }).finally(() => pending.delete(key));
-  pending.set(key, request);
-  return request;
-}
+const cache = catalogCache<Page | Chapters>(150);
 
 async function json<T>(url: URL): Promise<T> {
   const response = await fetch(url, { headers: { Accept: url.hostname === 'kitsu.io' ? 'application/vnd.api+json' : 'application/json', 'User-Agent': 'NekoPress/2.0' }, signal: AbortSignal.timeout(10000) });
@@ -86,7 +74,7 @@ async function anime(search: string, genre: Genre | '', rated: boolean, page: nu
       const name = related(l.relationships?.streamer?.data)[0]?.attributes.siteName;
       return url ? [{ label: name || new URL(url).hostname, url }] : [];
     });
-    return { id: e.id, title: a.titles?.en || a.canonicalTitle, image: webLink(a.posterImage?.medium || a.posterImage?.small),
+    return { id: e.id, title: a.titles?.en || a.canonicalTitle, searchTitle: a.titles?.en_jp || a.canonicalTitle, image: webLink(a.posterImage?.medium || a.posterImage?.small),
       genres: tags.map(translate), year: Number(a.startDate?.slice(0,4)) || undefined,
       original: 'https://kitsu.app/anime/' + encodeURIComponent(a.slug), links: [...new Map(links.map(l => [l.url, l])).values()] };
   });
@@ -114,37 +102,65 @@ async function manga(search: string, genre: Genre | '', rated: boolean, page: nu
 async function chapters(id: string, page: number, english: boolean): Promise<Chapters> {
   const url = new URL('https://api.mangadex.org/manga/' + id + '/feed');
   url.search = new URLSearchParams({ limit: String(Math.min(chapterLimit, 10000 - page * chapterLimit)), offset: String(page * chapterLimit), 'order[volume]': 'asc', 'order[chapter]': 'asc' }).toString();
+  url.searchParams.set('includes[]', 'scanlation_group');
   for (const lang of english ? ['en'] : ['es', 'es-la']) url.searchParams.append('translatedLanguage[]', lang);
-  const d = await json<{ total: number; data: { id: string; attributes: { title?: string; volume?: string; chapter?: string; pages: number; externalUrl?: string; translatedLanguage: string } }[] }>(url);
+  const d = await json<{ total: number; data: { id: string; relationships?: {
+    type: string; id: string; attributes?: { name?: string; website?: string }
+  }[]; attributes: { title?: string; volume?: string; chapter?: string; pages: number; externalUrl?: string; translatedLanguage: string } }[] }>(url);
   return { next: (page + 1) * chapterLimit < Math.min(10000, d.total), items: d.data.flatMap(c => {
     const a = c.attributes, external = webLink(a.externalUrl);
     if (!external && !a.pages) return [];
     const label = [a.volume && 'Vol. ' + a.volume, a.chapter && 'Cap. ' + a.chapter, a.title].filter(Boolean).join(' · ') || 'Capítulo único';
-    return [{ label: label + ' · ' + a.translatedLanguage.toUpperCase(), url: external || 'https://mangadex.org/chapter/' + c.id, chapterId: external ? undefined : c.id }];
+    const groups = c.relationships?.flatMap(group => {
+      const name = group.attributes?.name;
+      if (group.type !== 'scanlation_group' || !name || !uuid.test(group.id)) return [];
+      return [{ name, url: webLink(group.attributes?.website) || 'https://mangadex.org/group/' + group.id }];
+    });
+    return [{ label: label + ' · ' + a.translatedLanguage.toUpperCase(), groups, url: external || 'https://mangadex.org/chapter/' + c.id, chapterId: external ? undefined : c.id }];
   }) };
 }
 
 export const onlineCatalog = express.Router();
+onlineCatalog.use(regionalPlayback);
 onlineCatalog.get('/:kind', async (req, res) => {
   const { kind } = req.params;
   const q = String(req.query.q || '').trim(), genre = String(req.query.genre || ''), rated = req.query.sort === 'rating';
   const page = Number(req.query.page || 0);
   if (!['anime','manga'].includes(kind) || (genre && !Object.hasOwn(genres, genre)) || q.length > 100 ||
       !Number.isSafeInteger(page) || page < 0 || page * limit >= 10000) { res.sendStatus(400); return; }
-  const key = JSON.stringify([kind, q, genre, rated, page]);
-  try { res.json(await cached(key, () => (kind === 'anime' ? anime : manga)(q, genre as Genre | '', rated, page))); }
+  const primary = kind === 'anime' ? 'kitsu' : 'mangadex';
+  const source = String(req.query.source || primary);
+  const order = String(req.query.sort || 'popular');
+  if (source !== primary && (!Object.hasOwn(regionalKinds, source) || regionalKinds[source as Regional] !== kind)) {
+    res.status(400).json({ error: 'Fuente no disponible para esta colección.' }); return;
+  }
+  const key = JSON.stringify([kind, source, q, genre, order, page]);
+  try {
+    const data = await cache.read(key, () => source === primary
+      ? (kind === 'anime' ? anime : manga)(q, genre as Genre | '', rated, page)
+      : regionalCatalog(source as Regional, q, genre as Genre | '', order, page));
+    res.json(data);
+  }
   catch {
-    let fallback = cache.get(key)?.data;
-    if (!fallback && !q && !genre && !rated && page === 0) {
+    let fallback = cache.previous(key);
+    if (!fallback && source === primary && !q && !genre && !rated && page === 0) {
       try { fallback = JSON.parse(readFileSync(new URL('../../data/catalog-selection.json', import.meta.url), 'utf8'))[kind as Kind]; } catch { /* First installation without a selection */ }
     }
     if (fallback) res.json({ ...fallback, saved: true }); else res.status(503).json({ error: 'La fuente no responde. Vuelve a intentarlo.' });
   }
 });
+onlineCatalog.get('/fuente/:source/:id/entregas', async (req, res) => {
+  const { source, id } = req.params, series = String(req.query.serie || ''), page = Number(req.query.page || 0);
+  if (!validReleaseId(source, id, series) || !Number.isSafeInteger(page) || page < 0 || page >= 1000) {
+    res.sendStatus(400); return;
+  }
+  try { res.json(await regionalReleases(source, id, series, page)); }
+  catch { res.status(503).json({ error: 'La fuente no pudo cargar las entregas.' }); }
+});
 onlineCatalog.get('/manga/:id/capitulos', async (req, res) => {
   const id = req.params.id, page = Number(req.query.page || 0), english = req.query.lang === 'en';
   if (!uuid.test(id) || !Number.isSafeInteger(page) || page < 0 || page * chapterLimit >= 10000) { res.sendStatus(400); return; }
-  try { res.json(await cached(JSON.stringify([id,page,english]), () => chapters(id, page, english))); }
+  try { res.json(await cache.read(JSON.stringify([id,page,english]), () => chapters(id, page, english))); }
   catch { res.status(503).json({ error: 'No se pudieron cargar los capítulos.' }); }
 });
 
