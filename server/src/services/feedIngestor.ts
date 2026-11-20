@@ -168,6 +168,7 @@ export class FeedIngestor {
   private store: StoreData = { items: [], imageCache: {}, sourceStats: {} };
   private storePath: string;
   private isSyncing = false;
+  private translationInProgress: Promise<void> | null = null;
 
   constructor(baseDir = DEFAULT_SERVER_DIR) {
     this.storePath = path.resolve(baseDir, 'data', 'news-store.json');
@@ -237,7 +238,16 @@ export class FeedIngestor {
     }
   }
 
-  public async translatePendingItems(): Promise<void> {
+  public translatePendingItems(): Promise<void> {
+    if (!this.translationInProgress) {
+      this.translationInProgress = this.translateStoredItems().finally(() => {
+        this.translationInProgress = null;
+      });
+    }
+    return this.translationInProgress;
+  }
+
+  private async translateStoredItems(): Promise<void> {
     // Priorizar estrictamente las notas más recientes sin importar idioma origen (EN/JA/FR) para que la portada salga 100% en español
     const untranslated = this.store.items
       .filter((item) => {
@@ -394,6 +404,14 @@ export class FeedIngestor {
     }
 
     this.isSyncing = true;
+    try {
+      return await this.syncFeeds();
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  private async syncFeeds(): Promise<{ added: number; total: number }> {
     const now = Date.now();
     const cutoff = now - MAX_AGE_MS;
     const existingUrls = new Set(this.store.items.map((i) => i.url));
@@ -541,7 +559,6 @@ export class FeedIngestor {
     this.saveStore();
     await this.translatePendingItems();
 
-    this.isSyncing = false;
     console.log(`[FeedIngestor] Sincronización completada. Total notas en base: ${this.store.items.length}`);
     return { added: newItems.length, total: this.store.items.length };
   }

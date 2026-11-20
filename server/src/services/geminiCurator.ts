@@ -179,6 +179,15 @@ export class GeminiCurator {
     };
   }
 
+  private pauseGeminiAfterTimeout(error: unknown): boolean {
+    if (!(error instanceof Error) || error.name !== 'TimeoutError') return false;
+
+    this.geminiQuotaExhaustedUntil = Math.max(this.geminiQuotaExhaustedUntil, Date.now() + 3 * 60 * 1000);
+    this.lastErrorMessage = error.message;
+    console.warn('[GeminiCurator] ⚠ Tiempo de espera agotado en Gemini. Pausa de 3 min y activación del respaldo.');
+    return true;
+  }
+
   /**
    * Curates a candidate tweet using Gemini / Grok AI when configured and under quota,
    * or falls back to an ultra-resilient regex-based heuristic engine with zero latency.
@@ -196,12 +205,13 @@ export class GeminiCurator {
     const canUseGrok = this.grokApiKey && now > this.grokQuotaExhaustedUntil;
 
     if (canUseGemini) {
-      if (this.lastLoggedStatus !== 'ai') {
-        console.log('[GeminiCurator] ✓ Motor Gemini AI ACTIVO para curaduría y redacción editorial.');
-        this.lastLoggedStatus = 'ai';
-      }
       try {
         const result = await this.curateWithGemini(tweet);
+        if (this.lastLoggedStatus !== 'ai') {
+          console.log('[GeminiCurator] ✓ Motor Gemini AI ACTIVO para curaduría y redacción editorial.');
+          this.lastLoggedStatus = 'ai';
+        }
+        this.lastErrorMessage = null;
         this.curationCache.set(cacheKey, result);
         return result;
       } catch (err: any) {
@@ -211,7 +221,7 @@ export class GeminiCurator {
         } else if (err.message && err.message.includes('503')) {
           this.geminiQuotaExhaustedUntil = Date.now() + 3 * 60 * 1000; // 3 minutos de cooldown
           console.warn('[GeminiCurator] ⚠ Alta demanda temporal en gemini-3.8-flash (HTTP 503). Enfriamiento breve de 3 min.');
-        } else {
+        } else if (!this.pauseGeminiAfterTimeout(err)) {
           console.warn(`[GeminiCurator] ⚠ Fallo temporal en API de Gemini (${err.message}).`);
         }
       }
@@ -559,6 +569,7 @@ ${JSON.stringify(batch)}`;
       const maxAttempts = 2;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (Date.now() < this.geminiQuotaExhaustedUntil) break;
         try {
           const res = await fetch(endpoint, {
             method: 'POST',
@@ -619,6 +630,7 @@ ${JSON.stringify(batch)}`;
             }
           }
         } catch (err: any) {
+          if (this.pauseGeminiAfterTimeout(err)) break;
           this.lastErrorMessage = err?.message || 'Error de red en Gemini';
           if (attempt < maxAttempts) {
             await new Promise((r) => setTimeout(r, 1500));
