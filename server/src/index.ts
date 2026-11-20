@@ -34,7 +34,7 @@ import {
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT || 3001);
 const ingestor = new FeedIngestor();
 
 app.use('/api/catalogo-online', onlineCatalog);
@@ -133,13 +133,21 @@ function isVideoArticle(article: NewsItem) {
   return /^https:\/\/(?:youtu\.be\/|(?:(?:www|m)\.)?youtube\.com\/watch\?)/i.test(article.url);
 }
 
-function areDuplicateNews(a: NewsItem, b: NewsItem): boolean {
-  if (a.url === b.url || a.id === b.id) return true;
-  // Keep the playable video when another outlet covers the same announcement.
-  if (isVideoArticle(a) || isVideoArticle(b)) return false;
+type NewsMatch = {
+  article: NewsItem;
+  isVideo: boolean;
+  publishedAt: number;
+  words: Set<string>;
+};
 
-  const wordsA = getTitleWords(a.title);
-  const wordsB = getTitleWords(b.title);
+function areDuplicateNews(a: NewsMatch, b: NewsMatch): boolean {
+  if (a.article.url === b.article.url || a.article.id === b.article.id) return true;
+  // Keep the playable video when another outlet covers the same announcement.
+  if (a.isVideo || b.isVideo) return false;
+  if (!(Math.abs(a.publishedAt - b.publishedAt) < 4 * 24 * 60 * 60 * 1000)) return false;
+
+  const wordsA = a.words;
+  const wordsB = b.words;
   if (wordsA.size === 0 || wordsB.size === 0) return false;
 
   let intersection = 0;
@@ -147,18 +155,14 @@ function areDuplicateNews(a: NewsItem, b: NewsItem): boolean {
     if (wordsB.has(w)) intersection++;
   }
 
-  const union = new Set([...wordsA, ...wordsB]).size;
+  const union = wordsA.size + wordsB.size - intersection;
   const similarity = intersection / union;
   const overlapRatio = intersection / Math.min(wordsA.size, wordsB.size);
 
-  const timeDiff = Math.abs(new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime());
-  const within4Days = timeDiff < 4 * 24 * 60 * 60 * 1000;
-
   return (
-    within4Days &&
-    (similarity >= 0.45 ||
-      (intersection >= 3 && similarity >= 0.35) ||
-      (intersection >= 2 && overlapRatio >= 0.4))
+    similarity >= 0.45 ||
+    (intersection >= 3 && similarity >= 0.35) ||
+    (intersection >= 2 && overlapRatio >= 0.4)
   );
 }
 
@@ -180,12 +184,19 @@ function editorialNews() {
     (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
 
-  const deduped: NewsItem[] = [];
+  const deduped: NewsMatch[] = [];
 
   for (const item of rawList) {
     const proxied: NewsItem = { ...item, category: classifyNews(item.title, item.summary, item.category),
       imageUrl: toProxiedImageUrl(item.imageUrl) };
-    const existing = deduped.find((d) => areDuplicateNews(d, proxied));
+    const match = {
+      article: proxied,
+      isVideo: isVideoArticle(proxied),
+      publishedAt: Date.parse(proxied.publishedAt),
+      words: getTitleWords(proxied.title),
+    };
+    const idx = deduped.findIndex((candidate) => areDuplicateNews(candidate, match));
+    const existing = deduped[idx]?.article;
     if (existing) {
       // Si una de las dos versiones duplicadas tiene imagen y la otra no, heredarla
       if (!existing.imageUrl && proxied.imageUrl) {
@@ -205,18 +216,17 @@ function editorialNews() {
         source.url !== primary.url && supportsCoverage(primary.title, source.title) && /^https?:\/\//i.test(source.url)
       ).map(source => [source.url, source])).values()];
       if (replace) {
-        const idx = deduped.indexOf(existing);
-        deduped[idx] = proxied;
+        deduped[idx] = match;
       }
     } else {
-      deduped.push(proxied);
+      deduped.push(match);
     }
   }
 
   const edits = editorialOverrides();
   const links = articleAnimeLinks();
   const feature = activeFeature();
-  return deduped.map(item => {
+  return deduped.map(({ article: item }) => {
     const edit = edits.get(item.id);
     const featured = feature?.id === item.id && !edit?.hidden ? {
       until: feature.until, intro: feature.intro, image: toProxiedImageUrl(feature.image)
@@ -274,16 +284,26 @@ app.use((req, res, next) => {
 /**
  * GET /api/health
  */
-app.get('/api/health', (req: Request, res: Response) => {
-  const all = getAllNews();
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.json({
     status: 'ok',
     service: 'NekoPress v2 Intelligence API',
     uptime: Math.floor(process.uptime()),
-    totalNews: all.length,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/health/details', (_req: Request, res: Response) => {
+  const ai = geminiCurator.getAiStatus();
+  res.json({
+    status: 'ok',
+    service: 'NekoPress v2 Intelligence API',
+    uptime: Math.floor(process.uptime()),
+    totalNews: getAllNews().length,
     radarNewsCount: xRadarIngestor.getRadarItems().length,
-    geminiAiActive: geminiCurator.hasApiKey(),
-    ai: geminiCurator.getAiStatus(),
+    geminiAiActive: ai.hasGeminiKey || ai.hasGrokKey,
+    ai,
     timestamp: new Date().toISOString(),
   });
 });
@@ -792,11 +812,7 @@ if (fs.existsSync(clientDistDir)) {
   });
 }
 
-// Auto-sync on startup
-ingestor.sync().catch(console.error);
-xRadarIngestor.sync().catch(console.error);
-
-// Routine polling: 45s for aggressive Radar X scoops, 60s for traditional RSS
+// Routine polling: 45s for Radar X, 5 minutes for RSS.
 setInterval(() => {
   xRadarIngestor.sync().catch(console.error);
 }, 45 * 1000);
@@ -812,7 +828,7 @@ setInterval(() => {
   }
 }, 210 * 1000);
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n============================================================`);
   console.log(` 猫PRESS v2 [NekoPress Core] — Backend RSS & X Radar Server`);
   console.log(` ▸ URL:          http://localhost:${PORT}`);
@@ -821,4 +837,11 @@ app.listen(PORT, () => {
   console.log(` ▸ Radar API:    http://localhost:${PORT}/api/radar/status`);
   console.log(` ▸ Gemini AI:    ${geminiCurator.hasApiKey() ? 'Activo (Neuronal)' : 'Modo Heurístico (Sin clave)'}`);
   console.log(`============================================================\n`);
+
+  // Give the HTTP server time to answer probes before starting external syncs.
+  setTimeout(() => {
+    ingestor.sync().catch(console.error);
+    xRadarIngestor.sync().catch(console.error);
+    animeLiveService.startBackgroundSync();
+  }, 10_000);
 });

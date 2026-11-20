@@ -246,6 +246,9 @@ export class AnimeLiveService {
   constructor() {
     this.loadLiveCache();
     this.buildInitialDossiers();
+  }
+
+  public startBackgroundSync(): void {
     this.bootSync();
   }
 
